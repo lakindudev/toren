@@ -1,0 +1,30 @@
+{
+  "name": "toren",
+  "version": "1.0.0",
+  "description": "A CLI that analyzes software codebases and generates onboarding insights.",
+  "type": "module",
+  "bin": {
+    "toren": "./bin/toren.js"
+  },
+  "main": "./src/scanner/scan.js",
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "start": "node bin/toren.js",
+    "lint": "node --check bin/toren.js src/scanner/scan.js"
+  },
+  "keywords": [
+    "cli",
+    "codebase",
+    "onboarding",
+    "developer-tool",
+    "scanner"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
