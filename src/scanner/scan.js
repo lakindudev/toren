@@ -109,11 +109,13 @@ const ENTRY_POINT_NAMES = new Set([
 
 /**
  * @typedef {Object} ScanResult
- * @property {string}              rootPath     - Absolute path that was scanned
- * @property {string}              projectType  - Detected project type label
- * @property {Array<string>}       entryPoints  - Relative paths of detected entry points
- * @property {DirNode}             tree         - Full in-memory file tree
- * @property {Array<string>}       flatFiles    - All relative file paths (flat list)
+ * @property {string}              rootPath       - Absolute path that was scanned
+ * @property {string}              projectType    - Detected project type label
+ * @property {Array<string>}       entryPoints    - Relative paths of detected entry points
+ * @property {DirNode}             tree           - Full in-memory file tree
+ * @property {Array<string>}       flatFiles      - All relative file paths (flat list)
+ * @property {number}              totalFolders   - Total number of directories walked
+ * @property {number}              scanDurationMs - Wall-clock time of the scan in milliseconds
  */
 
 // ---------------------------------------------------------------------------
@@ -257,6 +259,26 @@ function refineNodeProjectType(pkgPath) {
 }
 
 // ---------------------------------------------------------------------------
+// Tree helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Count the total number of directory nodes in a tree (including the root).
+ *
+ * @param {DirNode} node
+ * @returns {number}
+ */
+function countFolders(node) {
+  let count = 1; // count this directory
+  for (const child of node.children ?? []) {
+    if (child.type === 'directory') {
+      count += countFolders(child);
+    }
+  }
+  return count;
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -286,8 +308,13 @@ export function scan(targetPath) {
   /** @type {Array<string>} */
   const entryPoints = [];
 
+  const startTime   = performance.now();
   const tree        = walkDirectory(rootPath, rootPath, flatFiles, entryPoints);
   const projectType = detectProjectType(rootPath);
+  const scanDurationMs = Math.round(performance.now() - startTime);
+
+  // Count all directory nodes in the tree (excluding root itself).
+  const totalFolders = countFolders(tree) - 1;
 
   return {
     rootPath,
@@ -295,5 +322,7 @@ export function scan(targetPath) {
     entryPoints,
     tree,
     flatFiles,
+    totalFolders,
+    scanDurationMs,
   };
 }
