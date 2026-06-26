@@ -15,6 +15,7 @@
 import { createRequire } from 'node:module';
 import { scan }   from '../src/scanner/scan.js';
 import { render } from '../src/renderers/console-renderer.js';
+import { renderTree } from '../src/renderers/tree-renderer.js';
 
 const require = createRequire(import.meta.url);
 const pkg     = require('../package.json');
@@ -74,6 +75,8 @@ function parseArgs() {
   try {
     const result = scan(targetArg);
     render(result, { cwd: process.cwd() });
+    
+    console.log(renderTree(result.flatFiles).output);
   } catch (err) {
     console.error('');
     console.error(`\x1b[31m  ❌  Error: ${err.message}\x1b[0m`);
