@@ -15,7 +15,7 @@
 import { createRequire } from 'node:module';
 import { scan }   from '../src/scanner/scan.js';
 import { render } from '../src/renderers/console-renderer.js';
-
+import { runDoctor, runUninstall } from '../src/lifecycle.js';
 
 const require = createRequire(import.meta.url);
 const pkg     = require('../package.json');
@@ -30,6 +30,8 @@ function printHelp() {
   toren [path]        Scan a directory (defaults to current directory)
   toren --help        Show this help message
   toren --version     Show version number
+  toren --doctor      Check global installation health
+  toren --uninstall   Safely remove global installation
 
 \x1b[1mExamples:\x1b[0m
   toren .             Scan the current directory
@@ -51,17 +53,27 @@ function parseArgs() {
 
   if (args.includes('--help') || args.includes('-h')) {
     printHelp();
-    return null;
+    return { action: 'exit' };
   }
 
   if (args.includes('--version') || args.includes('-v')) {
     console.log(pkg.version);
-    return null;
+    return { action: 'exit' };
+  }
+  
+  if (args.includes('--doctor')) {
+    runDoctor(pkg.version);
+    return { action: 'exit' };
+  }
+  
+  if (args.includes('--uninstall')) {
+    runUninstall();
+    return { action: 'wait' };
   }
 
   // First non-flag argument is the target path; default to cwd.
   const target = args.find(a => !a.startsWith('-')) ?? '.';
-  return target;
+  return { action: 'scan', target };
 }
 
 // ---------------------------------------------------------------------------
@@ -69,11 +81,12 @@ function parseArgs() {
 // ---------------------------------------------------------------------------
 
 (function main() {
-  const targetArg = parseArgs();
-  if (targetArg === null) process.exit(0);
+  const parsed = parseArgs();
+  if (parsed.action === 'exit') process.exit(0);
+  if (parsed.action === 'wait') return;
 
   try {
-    const result = scan(targetArg);
+    const result = scan(parsed.target);
     render(result, { cwd: process.cwd() });
   } catch (err) {
     console.error('');
