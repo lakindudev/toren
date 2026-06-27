@@ -100,8 +100,9 @@ function row(label, value, ...valueCodes) {
  * @param {boolean}           isLast   - Whether this is the last sibling
  * @param {{ count: number }} counter  - Shared mutable file counter
  */
-function renderTree(node, prefix, isLast, counter) {
+function renderTree(node, prefix, isLast, counter, depth = 0, maxDepth = 4) {
   if (counter.count >= PREVIEW_LIMIT) return;
+  if (depth >= maxDepth) return;
 
   const connector = isLast ? '└── ' : '├── ';
   const extension = isLast ? '    ' : '│   ';
@@ -109,14 +110,26 @@ function renderTree(node, prefix, isLast, counter) {
   if (node.type === 'directory') {
     console.log(`${prefix}${connector}${paint(`${node.name}/`, C.bold, C.blue)}`);
     const children = node.children ?? [];
+    
+    if (depth === maxDepth - 1 && children.length > 0) {
+       console.log(`${prefix}${extension}└── ${paint('...', C.dim)}`);
+       return;
+    }
+
     for (let i = 0; i < children.length; i++) {
       if (counter.count >= PREVIEW_LIMIT) break;
-      renderTree(children[i], prefix + extension, i === children.length - 1, counter);
+      renderTree(children[i], prefix + extension, i === children.length - 1, counter, depth + 1, maxDepth);
     }
   } else {
     console.log(`${prefix}${connector}${paint(node.name, C.white)}`);
     counter.count += 1;
   }
+}
+
+function formatDuration(ms) {
+  if (ms < 1) return '< 1 ms';
+  if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
+  return `${Math.round(ms)} ms`;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,16 +177,16 @@ export function render(result, options = {}) {
 
   // ── Summary ───────────────────────────────────────────────────────────────
   section('🔍', 'Project Summary');
-  row('Path:        ', paint(relRoot, C.cyan));
-  row('Project type:', paint(projectType, C.bold, C.green));
-  row('Total files: ', paint(String(flatFiles.length), C.yellow));
+  row('Path:         ', paint(relRoot, C.cyan));
+  row('Project type: ', paint(projectType, C.bold, C.green));
+  row('Total files:  ', paint(String(flatFiles.length), C.yellow));
   row('Total folders:', paint(String(totalFolders), C.yellow));
-  row('Scan duration:', paint(`${scanDurationMs} ms`, C.magenta));
+  row('Scan duration:', paint(formatDuration(scanDurationMs), C.magenta));
 
   // ── Entry Points ──────────────────────────────────────────────────────────
   section('🚪', 'Entry Points');
   if (entryPoints.length === 0) {
-    console.log(paint('  No known entry points detected.', C.dim));
+    console.log(paint('  ⚠ No entry points detected (this may be a library or utility project)', C.yellow));
   } else {
     for (const ep of entryPoints) {
       console.log(`  ${paint('→', C.cyan)}  ${paint(ep, C.white)}`);

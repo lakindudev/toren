@@ -65,26 +65,23 @@ const PROJECT_TYPE_MARKERS = [
   { marker: 'mix.exs',            label: 'Elixir'                  },
 ];
 
-/**
- * Known application entry-point basenames.
- * Matched against the basename of every discovered file.
- * @type {Set<string>}
- */
-const ENTRY_POINT_NAMES = new Set([
-  'index.js',
-  'index.ts',
-  'main.js',
-  'main.ts',
-  'main.py',
-  'app.js',
-  'app.ts',
-  'App.js',
-  'App.ts',
-  'Application.java',
-  'Main.java',
-  'server.js',
-  'server.ts',
+const ENTRY_POINT_EXACT = new Set([
+  'index.js', 'index.ts', 'index.jsx', 'index.tsx',
+  'main.js', 'main.ts', 'main.jsx', 'main.tsx', 'main.py',
+  'app.js', 'app.ts', 'app.jsx', 'app.tsx', 'App.js', 'App.ts', 'App.jsx', 'App.tsx',
+  'server.js', 'server.ts', 'server.jsx', 'server.tsx',
+  'Application.java', 'Main.java',
+  'page.js', 'page.ts', 'page.jsx', 'page.tsx',
+  'layout.js', 'layout.ts', 'layout.jsx', 'layout.tsx',
+  '_app.js', '_app.ts', '_app.jsx', '_app.tsx',
+  '_document.js', '_document.ts', '_document.jsx', '_document.tsx'
 ]);
+
+function isEntryPoint(filename) {
+  if (ENTRY_POINT_EXACT.has(filename)) return true;
+  if (filename.endsWith('Application.java')) return true;
+  return false;
+}
 
 // ---------------------------------------------------------------------------
 // Types (JSDoc — no TypeScript dependency required)
@@ -195,7 +192,7 @@ function walkDirectory(dirPath, rootPath, flatFiles, entryPoints) {
       node.children.push(fileNode);
       flatFiles.push(relFilePath);
 
-      if (ENTRY_POINT_NAMES.has(dirent.name)) {
+      if (isEntryPoint(dirent.name)) {
         entryPoints.push(relFilePath);
       }
     }
@@ -282,13 +279,6 @@ function countFolders(node) {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Scan a project directory and return structured metadata.
- *
- * @param {string} targetPath - Path to scan (relative or absolute)
- * @returns {ScanResult}
- * @throws {Error} If `targetPath` does not exist or is not a directory
- */
 export function scan(targetPath) {
   const rootPath = path.resolve(targetPath);
 
@@ -299,9 +289,6 @@ export function scan(targetPath) {
   } catch {
     throw new Error(`Path does not exist: ${rootPath}`);
   }
-  if (!stat.isDirectory()) {
-    throw new Error(`Path is not a directory: ${rootPath}`);
-  }
 
   /** @type {Array<string>} */
   const flatFiles   = [];
@@ -309,12 +296,38 @@ export function scan(targetPath) {
   const entryPoints = [];
 
   const startTime   = performance.now();
-  const tree        = walkDirectory(rootPath, rootPath, flatFiles, entryPoints);
-  const projectType = detectProjectType(rootPath);
-  const scanDurationMs = Math.round(performance.now() - startTime);
+  let tree;
+  let projectType = 'Unknown';
+  let totalFolders = 0;
 
-  // Count all directory nodes in the tree (excluding root itself).
-  const totalFolders = countFolders(tree) - 1;
+  if (stat.isDirectory()) {
+    tree = walkDirectory(rootPath, rootPath, flatFiles, entryPoints);
+    projectType = detectProjectType(rootPath);
+    // Count all directory nodes in the tree (excluding root itself).
+    totalFolders = countFolders(tree) - 1;
+  } else if (stat.isFile()) {
+    const relFilePath = path.basename(rootPath);
+    tree = {
+      type: 'directory',
+      name: path.basename(path.dirname(rootPath)),
+      fullPath: path.dirname(rootPath),
+      relPath: '.',
+      children: [{
+        type: 'file',
+        name: relFilePath,
+        fullPath: rootPath,
+        relPath: relFilePath
+      }]
+    };
+    flatFiles.push(relFilePath);
+    if (isEntryPoint(relFilePath)) {
+      entryPoints.push(relFilePath);
+    }
+  } else {
+    throw new Error(`Path is neither a file nor a directory: ${rootPath}`);
+  }
+
+  const scanDurationMs = performance.now() - startTime;
 
   return {
     rootPath,
