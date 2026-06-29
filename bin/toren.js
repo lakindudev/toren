@@ -14,7 +14,8 @@
 
 import { createRequire } from 'node:module';
 import { scan }   from '../src/scanner/scan.js';
-import { render } from '../src/renderers/console-renderer.js';
+import { render as renderConsole } from '../src/renderers/console-renderer.js';
+import { render as renderJson } from '../src/renderers/json-renderer.js';
 import { runDoctor, runUninstall } from '../src/lifecycle.js';
 
 const require = createRequire(import.meta.url);
@@ -28,6 +29,7 @@ function printHelp() {
   console.log(`
 \x1b[1mUsage:\x1b[0m
   toren [path]        Scan a directory (defaults to current directory)
+  toren --json        Output results as a JSON string
   toren --help        Show this help message
   toren --version     Show version number
   toren --doctor      Check global installation health
@@ -71,9 +73,11 @@ function parseArgs() {
     return { action: 'wait' };
   }
 
+  const isJson = args.includes('--json');
+
   // First non-flag argument is the target path; default to cwd.
   const target = args.find(a => !a.startsWith('-')) ?? '.';
-  return { action: 'scan', target };
+  return { action: 'scan', target, isJson };
 }
 
 // ---------------------------------------------------------------------------
@@ -87,11 +91,19 @@ function parseArgs() {
 
   try {
     const result = scan(parsed.target);
-    render(result, { cwd: process.cwd() });
+    if (parsed.isJson) {
+      renderJson(result, { cwd: process.cwd() });
+    } else {
+      renderConsole(result, { cwd: process.cwd() });
+    }
   } catch (err) {
-    console.error('');
-    console.error(`\x1b[31m  ❌  Error: ${err.message}\x1b[0m`);
-    console.error('');
+    if (parsed.isJson) {
+      console.error(JSON.stringify({ error: err.message }, null, 2));
+    } else {
+      console.error('');
+      console.error(`\x1b[31m  ❌  Error: ${err.message}\x1b[0m`);
+      console.error('');
+    }
     process.exit(1);
   }
 })();
