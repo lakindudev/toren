@@ -35,9 +35,7 @@ const renderers = {
   console:  renderConsole,
   json:     renderJson,
   markdown: renderMarkdown,
-  md:       renderMarkdown,  // Short alias — points to the same renderer.
   html:     renderHtml,
-  web:      renderHtml,      // Friendly alias — points to the same renderer.
 };
 
 export default renderers;
