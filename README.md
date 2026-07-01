@@ -313,8 +313,8 @@ Toren automates that first pass. In one command, you get a structured summary of
 - [x] Entry point detection
 - [x] `--doctor` install health check
 - [x] `--uninstall` guided removal
-- [ ] Markdown renderer (`--format md`)
-- [ ] HTML renderer (`--format html`)
+- [x] Markdown renderer (`--format md`)
+- [x] HTML renderer (`--format html`)
 - [ ] YAML output
 - [ ] `.torenignore` configuration file
 - [ ] Plugin / custom renderer system
