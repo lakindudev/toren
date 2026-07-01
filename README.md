@@ -26,15 +26,15 @@ Whether you've just cloned an open-source project, joined a new team, or are rev
 
 ## Features
 
-- ⚡ **Fast scanning** — recursively walks a project in milliseconds
-- 📦 **Zero external dependencies** — pure Node.js stdlib only
-- 🧠 **Framework detection** — identifies React, Next.js, Vue, Angular, Go, Rust, Python, and more
-- 🚪 **Entry point detection** — pinpoints `index.js`, `main.ts`, `App.tsx`, `Application.java`, and other common entry files
-- 🌲 **File tree preview** — visual directory structure, up to 4 levels deep
-- 🎨 **Beautiful terminal output** — ANSI-styled, readable at a glance
-- 🔧 **JSON output** — machine-readable format for scripting and tooling integration
-- 🙈 **Smart ignore rules** — skips `node_modules`, `.git`, `dist`, `build`, `.venv`, and more
-- 🔌 **Extensible renderer architecture** — add new output formats without touching core logic
+- **Fast scanning** — recursively walks a project in milliseconds
+- **Zero external dependencies** — pure Node.js stdlib only
+- **Framework detection** — identifies React, Next.js, Vue, Angular, Go, Rust, Python, and more
+- **Entry point detection** — pinpoints `index.js`, `main.ts`, `App.tsx`, `Application.java`, and other common entry files
+- **File tree preview** — visual directory structure, up to 4 levels deep
+- **Beautiful terminal output** — ANSI-styled, readable at a glance
+- **JSON output** — machine-readable format for scripting and tooling integration
+- **Smart ignore rules** — skips `node_modules`, `.git`, `dist`, `build`, `.venv`, and more
+- **Extensible renderer architecture** — add new output formats without touching core logic
 
 ---
 
