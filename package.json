@@ -1,5 +1,5 @@
 {
-  "name": "toren",
+  "name": "@lakindu_perera/toren",
   "version": "1.0.0",
   "description": "A CLI that analyzes software codebases and generates onboarding insights.",
   "type": "module",
