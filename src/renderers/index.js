@@ -17,8 +17,9 @@
  * @module renderers/index
  */
 
-import { render as renderConsole } from './console-renderer.js';
-import { render as renderJson    } from './json-renderer.js';
+import { render as renderConsole   } from './console-renderer.js';
+import { render as renderJson      } from './json-renderer.js';
+import { render as renderMarkdown  } from './markdown-renderer.js';
 
 /**
  * Registry of all available output renderers.
@@ -30,8 +31,10 @@ import { render as renderJson    } from './json-renderer.js';
  * @type {Record<string, function(import('../scanner/scan.js').ScanResult, object=): void>}
  */
 const renderers = {
-  console: renderConsole,
-  json:    renderJson,
+  console:  renderConsole,
+  json:     renderJson,
+  markdown: renderMarkdown,
+  md:       renderMarkdown,  // Short alias — points to the same renderer.
 };
 
 export default renderers;
