@@ -6,7 +6,8 @@
   "bin": {
     "toren": "./bin/toren.js"
   },
-  "main": "./src/scanner/scan.js",
+  "preferGlobal": true,
+  "main": "bin/toren.js",
   "files": [
     "bin",
     "src"
