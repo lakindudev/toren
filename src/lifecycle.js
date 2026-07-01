@@ -106,13 +106,16 @@ export function runUninstall() {
     }
 
     console.log('');
-    console.log('To safely remove the global installation, run the following command:');
+    console.log('Uninstalling Toren...');
     
-    if (status.method === 'npm link') {
-      console.log(paint('  npm unlink', C.cyan));
-      console.log('  (Make sure you run this in your local Toren project directory)');
-    } else {
-      console.log(paint('  npm uninstall -g toren', C.cyan));
+    try {
+      execSync('npm uninstall -g toren', { stdio: 'inherit' });
+      console.log('');
+      console.log(paint('✔ Successfully removed Toren from the global environment.', C.green));
+    } catch (err) {
+      console.log('');
+      console.log(paint('❌ Failed to uninstall Toren.', C.red));
+      console.log('Please try manually: npm uninstall -g toren');
     }
     
     console.log('');

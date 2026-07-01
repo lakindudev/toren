@@ -91,7 +91,7 @@ function parseArgs() {
     return { action: 'exit' };
   }
 
-  if (args.includes('--version') || args.includes('-v')) {
+  if (args.includes('--version') || args.includes('-v') || args.includes('--v')) {
     console.log(pkg.version);
     return { action: 'exit' };
   }
@@ -132,6 +132,16 @@ function parseArgs() {
 
   // First non-flag, non-consumed token is the target path; default to cwd.
   const target = args.find(a => !a.startsWith('-') && !consumedValues.has(a)) ?? '.';
+
+  // ── Unknown flag check ──────────────────────────────────────────────────
+  const knownFlags = new Set(['--help', '-h', '--version', '-v', '--v', '--doctor', '--uninstall', '--format', '--json']);
+  const unknownFlag = args.find(a => a.startsWith('-') && !knownFlags.has(a) && !consumedValues.has(a));
+  
+  if (unknownFlag) {
+    console.error(`\x1b[31m  Unknown flag: ${unknownFlag}\x1b[0m`);
+    console.error(`  Run \x1b[36mtoren --help\x1b[0m for usage.\n`);
+    return { action: 'exit' };
+  }
 
   return { action: 'scan', target, format };
 }
