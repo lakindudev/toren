@@ -2,7 +2,7 @@
 
 > Understand any codebase in seconds.
 
-[![npm version](https://img.shields.io/npm/v/toren.svg)](https://www.npmjs.com/package/toren)
+[![npm version](https://img.shields.io/npm/v/@lakindu_perera/toren.svg)](https://www.npmjs.com/package/@lakindu_perera/toren)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-success.svg)](package.json)
@@ -43,13 +43,13 @@ Whether you've just cloned an open-source project, joined a new team, or are rev
 Install globally with npm:
 
 ```bash
-npm install -g toren
+npm install -g @lakindu_perera/toren
 ```
 
 Or run without installing:
 
 ```bash
-npx toren
+npx @lakindu_perera/toren
 ```
 
 **Requirements:** Node.js 18.0.0 or higher.
@@ -313,7 +313,7 @@ Toren automates that first pass. In one command, you get a structured summary of
 - [x] Entry point detection
 - [x] `--doctor` install health check
 - [x] `--uninstall` guided removal
-- [x] Markdown renderer (`--format md`)
+- [x] Markdown renderer (`--format markdown`)
 - [x] HTML renderer (`--format html`)
 - [ ] YAML output
 - [ ] `.torenignore` configuration file
@@ -335,7 +335,7 @@ Contributions are welcome and appreciated.
 4. **Push** to your branch: `git push origin feature/my-feature`
 5. **Open** a pull request
 
-For bugs or feature requests, please [open an issue](https://github.com/your-username/toren/issues). Try to include a clear description and, for bugs, the output of `toren --doctor`.
+For bugs or feature requests, please [open an issue](https://github.com/lakindudev/toren/issues). Try to include a clear description and, for bugs, the output of `toren --doctor`.
 
 **Code style notes:**
 - Zero external runtime dependencies — keep it that way
