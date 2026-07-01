@@ -20,6 +20,7 @@
 import { render as renderConsole   } from './console-renderer.js';
 import { render as renderJson      } from './json-renderer.js';
 import { render as renderMarkdown  } from './markdown-renderer.js';
+import { render as renderHtml      } from './html-renderer.js';
 
 /**
  * Registry of all available output renderers.
@@ -35,6 +36,8 @@ const renderers = {
   json:     renderJson,
   markdown: renderMarkdown,
   md:       renderMarkdown,  // Short alias — points to the same renderer.
+  html:     renderHtml,
+  web:      renderHtml,      // Friendly alias — points to the same renderer.
 };
 
 export default renderers;
