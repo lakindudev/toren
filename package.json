@@ -1,10 +1,10 @@
 {
-  "name": "@lakindu-perera/toren",
+  "name": "@lakindu_perera/toren",
   "version": "1.0.2",
   "description": "A powerful codebase scanner CLI tool for project analysis, framework detection, and understanding repository structure instantly.",
   "type": "module",
   "bin": {
-    "toren": "./bin/toren.js"
+    "toren": "bin/toren.js"
   },
   "preferGlobal": true,
   "main": "bin/toren.js",
@@ -31,7 +31,7 @@
   "author": "Lakindu Perera",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lakindudev/toren.git"
+    "url": "git+https://github.com/lakindudev/toren.git"
   },
   "bugs": {
     "url": "https://github.com/lakindudev/toren/issues"

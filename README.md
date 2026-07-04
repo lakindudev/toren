@@ -2,7 +2,7 @@
 
 > Understand any codebase in seconds.
 
-[![npm version](https://img.shields.io/npm/v/@lakindu-perera/toren.svg)](https://www.npmjs.com/package/@lakindu-perera/toren)
+[![npm version](https://img.shields.io/npm/v/@lakindu_perera/toren.svg)](https://www.npmjs.com/package/@lakindu_perera/toren)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-success.svg)](package.json)
@@ -36,13 +36,13 @@ Toren is built to deliver comprehensive repository insights efficiently:
 Install the **Toren CLI tool** globally via npm to use it across all your local projects:
 
 ```bash
-npm install -g @lakindu-perera/toren
+npm install -g @lakindu_perera/toren
 ```
 
 Alternatively, you can run it instantly without global installation:
 
 ```bash
-npx @lakindu-perera/toren
+npx @lakindu_perera/toren
 ```
 
 **Requirements:** Node.js 18.0.0 or higher.
