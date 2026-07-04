@@ -48,6 +48,7 @@ function printHelp() {
   toren --version           Show version number
   toren --doctor            Check global installation health
   toren --uninstall         Safely remove global installation
+  toren --max-files <N>     Set max file scan limit (default 50000)
 
 \x1b[1mOutput Formats:\x1b[0m
 ${formatList}
@@ -72,6 +73,7 @@ ${formatList}
  * @property {string}  [target]  - Resolved path to scan
  * @property {string}  [format]  - Renderer format name
  * @property {boolean} [includeHidden] - Whether to include hidden files
+ * @property {number}  [maxFiles] - Max files to scan
  */
 
 /**
@@ -135,11 +137,19 @@ function parseArgs() {
     consumedValues.add(args[formatIdx + 1]);
   }
 
+  // ── Max files ───────────────────────────────────────────────────────────
+  let maxFiles = undefined;
+  const maxFilesIdx = args.indexOf('--max-files');
+  if (maxFilesIdx !== -1 && args[maxFilesIdx + 1] !== undefined) {
+    maxFiles = parseInt(args[maxFilesIdx + 1], 10);
+    consumedValues.add(args[maxFilesIdx + 1]);
+  }
+
   // First non-flag, non-consumed token is the target path; default to cwd.
   const target = args.find(a => !a.startsWith('-') && !consumedValues.has(a)) ?? '.';
 
   // ── Unknown flag check ──────────────────────────────────────────────────
-  const knownFlags = new Set(['--help', '-h', '--version', '-v', '--v', '--doctor', '--uninstall', '--format', '--json', '--include-hidden']);
+  const knownFlags = new Set(['--help', '-h', '--version', '-v', '--v', '--doctor', '--uninstall', '--format', '--json', '--include-hidden', '--max-files']);
   const unknownFlag = args.find(a => a.startsWith('-') && !knownFlags.has(a) && !consumedValues.has(a));
   
   if (unknownFlag) {
@@ -148,7 +158,7 @@ function parseArgs() {
     return { action: 'exit' };
   }
 
-  return { action: 'scan', target, format, includeHidden };
+  return { action: 'scan', target, format, includeHidden, maxFiles };
 }
 
 // ---------------------------------------------------------------------------
@@ -192,7 +202,10 @@ function assertValidFormat(format) {
   const render = renderers[parsed.format];
 
   try {
-    const result = scan(parsed.target, { includeHidden: parsed.includeHidden });
+    const result = scan(parsed.target, { 
+      includeHidden: parsed.includeHidden, 
+      maxFiles: parsed.maxFiles 
+    });
     render(result, { cwd: process.cwd() });
   } catch (err) {
     // Render errors in the requested format where possible.

@@ -45,6 +45,10 @@ const IGNORED_DIRS = new Set([
   'venv',
   '.idea',
   '.vscode',
+  '.svelte-kit',
+  '.turbo',
+  '.parcel-cache',
+  '.DS_Store'
 ]);
 
 /**
@@ -130,9 +134,10 @@ function shouldIgnore(name, dirent, includeHidden) {
  * @param {string} rootPath     - Absolute path of the scan root (for relative paths)
  * @param {Array<string>} flatFiles - Accumulator for all relative file paths
  * @param {boolean} includeHidden - Whether to include hidden files
+ * @param {number} maxFiles - Maximum number of files to scan before aborting
  * @returns {DirNode}
  */
-function walkDirectory(dirPath, rootPath, flatFiles, includeHidden) {
+function walkDirectory(dirPath, rootPath, flatFiles, includeHidden, maxFiles) {
   const name    = path.basename(dirPath);
   let rawRelPath = path.relative(rootPath, dirPath) || '.';
   const relPath = toPosix(rawRelPath);
@@ -168,10 +173,16 @@ function walkDirectory(dirPath, rootPath, flatFiles, includeHidden) {
 
     const childPath = path.join(dirPath, dirent.name);
 
+    // Explicitly skip symbolic links to prevent infinite loops and unsafe traversals
+    if (dirent.isSymbolicLink()) continue;
+
     if (dirent.isDirectory()) {
-      const childNode = walkDirectory(childPath, rootPath, flatFiles, includeHidden);
+      const childNode = walkDirectory(childPath, rootPath, flatFiles, includeHidden, maxFiles);
       node.children.push(childNode);
     } else if (dirent.isFile()) {
+      if (flatFiles.length >= maxFiles) {
+        throw new Error(`Max file scan limit exceeded (${maxFiles} files). Use --max-files <number> to increase the limit.`);
+      }
       const relFilePath = toPosix(path.relative(rootPath, childPath));
 
       /** @type {FileNode} */
@@ -328,6 +339,16 @@ function findEntryPoints(projectType, flatFiles, rootPath) {
         }
       }
     }
+  } else if (projectType === 'Go') {
+    const priorities = ['main.go', 'cmd/main.go', 'cmd/api/main.go'];
+    for (const p of priorities) {
+      if (validSet.has(p)) { entries.push(p); break; }
+    }
+  } else if (projectType === 'Rust') {
+    const priorities = ['src/main.rs', 'src/lib.rs'];
+    for (const p of priorities) {
+      if (validSet.has(p)) { entries.push(p); break; }
+    }
   }
   
   if (entries.length === 0) {
@@ -342,7 +363,7 @@ function findEntryPoints(projectType, flatFiles, rootPath) {
     }
     if (entries.length === 0) {
       for (const f of validFiles) {
-        if (f.match(/\.(js|ts|jsx|tsx|py|java|go|rb|php)$/)) {
+        if (f.match(/\.(js|ts|jsx|tsx|py|java|go|rs|rb|php)$/)) {
           try {
             const content = fs.readFileSync(path.join(rootPath, f), 'utf8');
             const score = (content.match(/import /g) || []).length + 
@@ -389,6 +410,7 @@ function countFolders(node) {
 export function scan(targetPath, options = {}) {
   const rootPath = path.resolve(targetPath);
   const includeHidden = !!options.includeHidden;
+  const maxFiles = options.maxFiles || 50000; // Default cap of 50k files for huge repos
 
   // Validate target
   let stat;
@@ -409,7 +431,7 @@ export function scan(targetPath, options = {}) {
   let totalFolders = 0;
 
   if (stat.isDirectory()) {
-    tree = walkDirectory(rootPath, rootPath, flatFiles, includeHidden);
+    tree = walkDirectory(rootPath, rootPath, flatFiles, includeHidden, maxFiles);
     projectType = detectProjectType(rootPath);
     // Count all directory nodes in the tree (excluding root itself).
     totalFolders = countFolders(tree) - 1;

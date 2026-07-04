@@ -1,164 +1,202 @@
-# Toren — Codebase Intelligence CLI
+# Toren — Codebase Analyzer CLI
 
-> Understand any codebase in seconds.
+> The fastest way to understand any project structure. A zero-dependency codebase scanner CLI for modern developers.
 
 [![npm version](https://img.shields.io/npm/v/@lakindu_perera/toren.svg)](https://www.npmjs.com/package/@lakindu_perera/toren)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-success.svg)](package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
 ## What is Toren?
 
-**Toren** is a powerful **codebase intelligence CLI** and **project analysis** tool designed to help developers understand unfamiliar repositories instantly. By running this lightweight **scanner**, you gain immediate insight into the architecture of any software project. It performs robust **framework detection**, identifies critical application start files through **entry point analysis**, and generates a clear **project structure visualization**—all without requiring you to read a single line of code.
+**Toren** is a fast, lightweight **codebase analyzer CLI** and **project scanner tool** designed to generate instant onboarding intelligence reports. By recursively scanning any local directory, Toren detects the underlying project framework, identifies critical entry points, and visualizes the folder structure—all in milliseconds. 
 
-Whether you are onboarding to a new team, auditing a complex repository, or looking for a fast **monorepo analyzer**, Toren cuts through the noise and gets you oriented fast.
-
----
-
-## Features
-
-Toren is built to deliver comprehensive repository insights efficiently:
-
-- **Codebase Scanning**: Recursively walks any project in milliseconds to gather deep architectural insights.
-- **Framework Detection**: Instantly identifies the underlying technologies powering the application.
-- **Entry Point Analysis**: Automatically pinpoints where execution begins (e.g., `index.js`, `main.ts`, `App.tsx`, `Application.java`).
-- **Project Structure Visualization**: Generates a beautiful, hierarchical directory tree right in your terminal.
-- **Monorepo Support**: Gracefully handles complex, multi-package repositories without failing.
-- **Zero Dependencies**: A pure Node.js CLI tool with zero external runtime packages.
-- **Machine-Readable Output**: Full JSON support for seamless integration with other developer tools and AI agents.
+Built with zero external dependencies, this **Node.js repository explorer** is the ultimate **developer onboarding tool** to help you conquer the "first 5 minutes" of navigating an unfamiliar repository.
 
 ---
 
-## Installation
+## ✨ Features
 
-Install the **Toren CLI tool** globally via npm to use it across all your local projects:
+- **Recursive Project Scanning**: Fast directory traversal using native Node.js APIs.
+- **Framework Detection**: Instantly identifies Node.js, React, Vue, Python, Go, Rust, Spring Boot, and more.
+- **Entry Point Detection**: Automatically pinpoints where execution begins (e.g., `index.js`, `main.ts`, `App.tsx`, `main.go`).
+- **Project Structure Visualizer**: Generates clean, hierarchical file trees.
+- **Multiple Output Formats**: Choose between `console` (default), `json`, `markdown`, or `html` reports.
+- **Zero Dependencies**: A pure Node.js CLI tool with no external runtime packages. Lightning fast install, infinitely secure.
+- **CLI Lifecycle Tools**: Native diagnostic and uninstallation tools (`--doctor`, `--uninstall`).
+
+---
+
+## 📥 Installation
+
+Install Toren globally via npm to make the **repository inspection CLI** available anywhere on your machine:
 
 ```bash
 npm install -g @lakindu_perera/toren
-```
-
-Alternatively, you can run it instantly without global installation:
-
-```bash
-npx @lakindu_perera/toren
 ```
 
 **Requirements:** Node.js 18.0.0 or higher.
 
 ---
 
-## Usage Examples
+## 💻 CLI Usage
 
-Navigate to your target project folder or point Toren directly to a repository.
-
-Scan the current directory for an instant summary:
+Toren is designed to be simple and intuitive. Point it at any directory to generate an immediate intelligence report.
 
 ```bash
+# Scan a specific path
+toren /path/to/project
+
+# Scan the current directory
 toren .
+
+# Export results in different formats
+toren --format json
+toren --format markdown
+toren --format html
+
+# Lifecycle & Help Commands
+toren --help
+toren --version
+toren --doctor
+toren --uninstall
 ```
-
-Scan and output the analysis in JSON format (ideal for toolchain integrations):
-
-```bash
-toren . --format json
-```
-
-Run a deep analysis on the codebase:
-
-```bash
-toren . --analyze
-```
-
-*Note: You can also point Toren to any absolute or relative path, e.g., `toren ../my-project`.*
 
 ---
 
-## Supported Frameworks
+## 📊 Output Examples
 
-Toren is equipped with highly accurate **framework detection** for modern development stacks. It automatically detects:
+### Console Output Example
+The default `console` format renders a beautiful summary directly in your terminal:
 
-- **Next.js**
-- **React**
-- **Node.js** (including Express, Fastify, Koa, and TypeScript variants)
-- **Spring Boot** (Java)
-- **Python** (including Pipenv and pyproject.toml setups)
-- **Go**
-- **Rust**
-- **Vue.js**
-- **Angular**
-- **Svelte**
-- **PHP**
-- **Ruby**
-- **Elixir**
-
-If a specific marker is not found, Toren intelligently falls back to structural heuristics to identify generic entry points, ensuring you always get meaningful project analysis.
-
----
-
-## Example Output
-
-```
-  Toren v1.0.1  —  Codebase Onboarding Intelligence
+```text
+  Toren v1.0.3  —  Codebase Onboarding Intelligence
 
 🔍  Project Summary
 ────────────────────────────────────────────────────────────────────────────────
-  Path:          ./my-app
-  Project type:  Next.js
-  Total files:   48
-  Total folders: 11
-  Scan duration: 3 ms
+  Path:          ./my-react-app
+  Project type:  React
+  Total files:   32
+  Total folders: 6
+  Scan duration: 4 ms
 
 🚪  Entry Points
 ────────────────────────────────────────────────────────────────────────────────
-  →  src/app/page.tsx
-  →  src/app/layout.tsx
+  →  src/main.tsx
+  →  src/App.tsx
 
 📁  Folder Structure  (first 20 files)
 ────────────────────────────────────────────────────────────────────────────────
-my-app/
+my-react-app/
 ├── public/
-│   └── favicon.ico
+│   └── vite.svg
 ├── src/
-│   ├── app/
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── components/
-│   │   ├── Header.tsx
-│   │   └── Footer.tsx
-│   └── lib/
-│       └── utils.ts
-├── .eslintrc.json
-├── next.config.js
+│   ├── assets/
+│   │   └── react.svg
+│   ├── App.css
+│   ├── App.tsx
+│   ├── index.css
+│   └── main.tsx
+├── index.html
 ├── package.json
-└── tsconfig.json
-  … and 28 more file(s) not shown
+└── vite.config.ts
+  … and 21 more file(s) not shown
 
 ────────────────────────────────────────────────────────────────────────────────
   ✅  Scan complete.
 ```
 
+### JSON Output Example
+Generate machine-readable output for scripts, toolchains, or AI context windows by running `toren --format json`:
+
+```json
+{
+  "project": {
+    "path": "./my-react-app",
+    "type": "React",
+    "framework": "React"
+  },
+  "summary": {
+    "totalFiles": 32,
+    "totalFolders": 6,
+    "scanDurationMs": 4
+  },
+  "entryPoints": [
+    "src/main.tsx",
+    "src/App.tsx"
+  ],
+  "structure": [
+    {
+      "type": "folder",
+      "name": "src",
+      "children": [
+        { "type": "file", "name": "App.tsx" },
+        { "type": "file", "name": "main.tsx" }
+      ]
+    },
+    { "type": "file", "name": "package.json" }
+  ]
+}
+```
+
+*Note: You can also generate rich, Github-flavored Markdown (`--format markdown`) or self-contained HTML reports (`--format html`) for documentation purposes!*
+
 ---
 
-## Contributing
+## 🏗 Architecture
 
-Contributions to improve this **repository analyzer** and **developer tool** are welcome!
+Toren's internal architecture emphasizes modular design, separation of concerns, and a strict **zero dependency** philosophy.
 
-1. **Fork** this repository.
-2. **Create** a feature branch: `git checkout -b feature/my-feature`.
-3. **Commit** your changes: `git commit -m "feat: add my feature"`.
-4. **Push** to your branch: `git push origin feature/my-feature`.
-5. **Open** a Pull Request.
-
-Please ensure any additions maintain the zero-dependency architecture. 
+- **`bin/toren.js`** — The CLI entry point. Handles argument parsing, option validation, and orchestrates the scanning and rendering phases.
+- **`src/scanner/scan.js`** — The core scanning engine. Safely traverses the file system, executes framework detection heuristics, and extracts entry points.
+- **`src/renderers/`** — The output formatting system. A highly decoupled registry of formatters (`console`, `json`, `html`, `markdown`). Each renderer consumes the raw scan data and formats it independently.
+- **`src/lifecycle.js`** — Dedicated install/uninstall diagnostic tools (`--doctor`, `--uninstall`) to ensure the global CLI binary remains healthy.
 
 ---
 
-## License
+## 🔥 Why Toren Exists
 
-[MIT](LICENSE) — free to use, modify, and distribute.
+Modern software development moves fast, but **onboarding into large codebases is slow**. 
+
+When developers join a new team, review a complex pull request, or audit an open-source project, they waste valuable time manually clicking through folders and reading `package.json` files just to understand the basic structure.
+
+**Toren solves the “first 5 minutes of any repo” problem.** 
+
+As a dedicated **developer onboarding tool**, Toren automates the initial discovery phase. In a single command, it tells you exactly what the project is, where the code starts executing, and how the folders are structured. By eliminating the manual guesswork of repository inspection, Toren drastically improves developer productivity.
 
 ---
 
-*If Toren saves you time during your codebase analysis, please consider starring the repository — it helps other developers discover this project.* ⭐
+## 🚀 Roadmap (Future Improvements)
+
+- `.torenignore` configuration file support
+- Dependency graph analysis and visualization
+- Plugin system for custom renderer injection
+- AI-generated natural language project summaries
+
+---
+
+## 🤝 Contributing
+
+Contributions to improve this codebase analyzer CLI are always welcome!
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+*Please ensure all new features maintain the strict zero-dependency architecture rule.*
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+## 👨‍💻 Author
+
+Built with ❤️ by **[Lakindu Perera](https://github.com/lakindudev)**. 
