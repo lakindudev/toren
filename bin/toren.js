@@ -71,6 +71,7 @@ ${formatList}
  * @property {'exit'|'wait'|'scan'} action
  * @property {string}  [target]  - Resolved path to scan
  * @property {string}  [format]  - Renderer format name
+ * @property {boolean} [includeHidden] - Whether to include hidden files
  */
 
 /**
@@ -121,6 +122,10 @@ function parseArgs() {
     format = 'json';
   }
 
+  // ── Hidden files ────────────────────────────────────────────────────────
+  const includeHidden = args.includes('--include-hidden');
+
+
   // ── Target path ─────────────────────────────────────────────────────────
   // Build the set of tokens that are consumed as values by named flags so
   // we don't accidentally treat them as the positional path argument.
@@ -134,7 +139,7 @@ function parseArgs() {
   const target = args.find(a => !a.startsWith('-') && !consumedValues.has(a)) ?? '.';
 
   // ── Unknown flag check ──────────────────────────────────────────────────
-  const knownFlags = new Set(['--help', '-h', '--version', '-v', '--v', '--doctor', '--uninstall', '--format', '--json']);
+  const knownFlags = new Set(['--help', '-h', '--version', '-v', '--v', '--doctor', '--uninstall', '--format', '--json', '--include-hidden']);
   const unknownFlag = args.find(a => a.startsWith('-') && !knownFlags.has(a) && !consumedValues.has(a));
   
   if (unknownFlag) {
@@ -143,7 +148,7 @@ function parseArgs() {
     return { action: 'exit' };
   }
 
-  return { action: 'scan', target, format };
+  return { action: 'scan', target, format, includeHidden };
 }
 
 // ---------------------------------------------------------------------------
@@ -187,7 +192,7 @@ function assertValidFormat(format) {
   const render = renderers[parsed.format];
 
   try {
-    const result = scan(parsed.target);
+    const result = scan(parsed.target, { includeHidden: parsed.includeHidden });
     render(result, { cwd: process.cwd() });
   } catch (err) {
     // Render errors in the requested format where possible.

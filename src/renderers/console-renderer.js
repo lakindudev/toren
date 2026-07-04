@@ -98,10 +98,10 @@ function row(label, value, ...valueCodes) {
  * @param {import('../scanner/scan.js').DirNode | import('../scanner/scan.js').FileNode} node
  * @param {string}            prefix   - Accumulated indentation
  * @param {boolean}           isLast   - Whether this is the last sibling
- * @param {{ count: number }} counter  - Shared mutable file counter
+ * @param {{ count: number, maxReached: boolean }} counter  - Shared mutable file counter
  */
 function renderTree(node, prefix, isLast, counter, depth = 0, maxDepth = 4) {
-  if (counter.count >= PREVIEW_LIMIT) return;
+  if (counter.maxReached) return;
   if (depth >= maxDepth) return;
 
   const connector = isLast ? '└── ' : '├── ';
@@ -117,8 +117,16 @@ function renderTree(node, prefix, isLast, counter, depth = 0, maxDepth = 4) {
     }
 
     for (let i = 0; i < children.length; i++) {
-      if (counter.count >= PREVIEW_LIMIT) break;
-      renderTree(children[i], prefix + extension, i === children.length - 1, counter, depth + 1, maxDepth);
+      if (counter.count >= PREVIEW_LIMIT) {
+        console.log(`${prefix}${extension}└── ${paint('...', C.dim)}`);
+        counter.maxReached = true;
+        break;
+      }
+      // Check if this child will be the last one we render due to limits
+      let willBeLast = i === children.length - 1;
+      
+      renderTree(children[i], prefix + extension, willBeLast, counter, depth + 1, maxDepth);
+      if (counter.maxReached) break;
     }
   } else {
     console.log(`${prefix}${connector}${paint(node.name, C.white)}`);
@@ -198,11 +206,15 @@ export function render(result, options = {}) {
 
   console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
 
-  const counter  = { count: 0 };
+  const counter  = { count: 0, maxReached: false };
   const children = tree.children ?? [];
   for (let i = 0; i < children.length; i++) {
-    if (counter.count >= PREVIEW_LIMIT) break;
+    if (counter.count >= PREVIEW_LIMIT) {
+      console.log(`└── ${paint('...', C.dim)}`);
+      break;
+    }
     renderTree(children[i], '', i === children.length - 1, counter);
+    if (counter.maxReached) break;
   }
 
   if (flatFiles.length > PREVIEW_LIMIT) {

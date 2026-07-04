@@ -8,7 +8,8 @@
  *  - Detect the project type from marker files
  *  - Identify known entry-point files
  *
- * This module is intentionally free of side-effects (no console.log).
+ * This module is intentionally free of side-effects (no console.log),
+ * except for warnings about unreadable directories.
  * All output concerns live in bin/toren.js.
  *
  * Designed to scale into:
@@ -65,24 +66,6 @@ const PROJECT_TYPE_MARKERS = [
   { marker: 'mix.exs',            label: 'Elixir'                  },
 ];
 
-const ENTRY_POINT_EXACT = new Set([
-  'index.js', 'index.ts', 'index.jsx', 'index.tsx',
-  'main.js', 'main.ts', 'main.jsx', 'main.tsx', 'main.py',
-  'app.js', 'app.ts', 'app.jsx', 'app.tsx', 'App.js', 'App.ts', 'App.jsx', 'App.tsx',
-  'server.js', 'server.ts', 'server.jsx', 'server.tsx',
-  'Application.java', 'Main.java',
-  'page.js', 'page.ts', 'page.jsx', 'page.tsx',
-  'layout.js', 'layout.ts', 'layout.jsx', 'layout.tsx',
-  '_app.js', '_app.ts', '_app.jsx', '_app.tsx',
-  '_document.js', '_document.ts', '_document.jsx', '_document.tsx'
-]);
-
-function isEntryPoint(filename) {
-  if (ENTRY_POINT_EXACT.has(filename)) return true;
-  if (filename.endsWith('Application.java')) return true;
-  return false;
-}
-
 // ---------------------------------------------------------------------------
 // Types (JSDoc — no TypeScript dependency required)
 // ---------------------------------------------------------------------------
@@ -92,7 +75,7 @@ function isEntryPoint(filename) {
  * @property {'file'} type
  * @property {string} name      - Basename of the file
  * @property {string} fullPath  - Absolute path
- * @property {string} relPath   - Path relative to the scanned root
+ * @property {string} relPath   - Path relative to the scanned root (POSIX style)
  */
 
 /**
@@ -100,7 +83,7 @@ function isEntryPoint(filename) {
  * @property {'directory'} type
  * @property {string} name      - Basename of the directory
  * @property {string} fullPath  - Absolute path
- * @property {string} relPath   - Path relative to the scanned root
+ * @property {string} relPath   - Path relative to the scanned root (POSIX style)
  * @property {Array<FileNode|DirNode>} children
  */
 
@@ -120,30 +103,39 @@ function isEntryPoint(filename) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Normalize a path to use POSIX separators ('/').
+ */
+function toPosix(p) {
+  return p.replace(/\\/g, '/');
+}
+
+/**
  * Determine whether a directory entry should be skipped.
  *
  * @param {string} name - Basename of the entry
  * @param {fs.Dirent} dirent
+ * @param {boolean} includeHidden
  * @returns {boolean}
  */
-function shouldIgnore(name, dirent) {
-  if (name.startsWith('.') && dirent.isDirectory()) return true;
+function shouldIgnore(name, dirent, includeHidden) {
+  if (!includeHidden && name.startsWith('.')) return true;
   return IGNORED_DIRS.has(name);
 }
 
 /**
  * Recursively walk `dirPath`, building a DirNode tree.
- * Also populates `flatFiles` and `entryPoints` arrays by reference.
+ * Also populates `flatFiles` array by reference.
  *
  * @param {string} dirPath      - Absolute path of the current directory
  * @param {string} rootPath     - Absolute path of the scan root (for relative paths)
- * @param {Array<string>} flatFiles    - Accumulator for all relative file paths
- * @param {Array<string>} entryPoints  - Accumulator for entry-point relative paths
+ * @param {Array<string>} flatFiles - Accumulator for all relative file paths
+ * @param {boolean} includeHidden - Whether to include hidden files
  * @returns {DirNode}
  */
-function walkDirectory(dirPath, rootPath, flatFiles, entryPoints) {
+function walkDirectory(dirPath, rootPath, flatFiles, includeHidden) {
   const name    = path.basename(dirPath);
-  const relPath = path.relative(rootPath, dirPath) || '.';
+  let rawRelPath = path.relative(rootPath, dirPath) || '.';
+  const relPath = toPosix(rawRelPath);
 
   /** @type {DirNode} */
   const node = {
@@ -157,8 +149,9 @@ function walkDirectory(dirPath, rootPath, flatFiles, entryPoints) {
   let entries;
   try {
     entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  } catch {
-    // Permission-denied or unreadable directory — skip silently.
+  } catch (err) {
+    // Permission-denied or unreadable directory — skip and log warnings instead of failing.
+    console.warn(`[warn] Skipping ${dirPath} (permission denied)`);
     return node;
   }
 
@@ -171,15 +164,15 @@ function walkDirectory(dirPath, rootPath, flatFiles, entryPoints) {
   });
 
   for (const dirent of entries) {
-    if (shouldIgnore(dirent.name, dirent)) continue;
+    if (shouldIgnore(dirent.name, dirent, includeHidden)) continue;
 
     const childPath = path.join(dirPath, dirent.name);
 
     if (dirent.isDirectory()) {
-      const childNode = walkDirectory(childPath, rootPath, flatFiles, entryPoints);
+      const childNode = walkDirectory(childPath, rootPath, flatFiles, includeHidden);
       node.children.push(childNode);
     } else if (dirent.isFile()) {
-      const relFilePath = path.relative(rootPath, childPath);
+      const relFilePath = toPosix(path.relative(rootPath, childPath));
 
       /** @type {FileNode} */
       const fileNode = {
@@ -191,10 +184,6 @@ function walkDirectory(dirPath, rootPath, flatFiles, entryPoints) {
 
       node.children.push(fileNode);
       flatFiles.push(relFilePath);
-
-      if (isEntryPoint(dirent.name)) {
-        entryPoints.push(relFilePath);
-      }
     }
   }
 
@@ -256,6 +245,124 @@ function refineNodeProjectType(pkgPath) {
 }
 
 // ---------------------------------------------------------------------------
+// Entry Point Heuristics
+// ---------------------------------------------------------------------------
+
+const FALSE_POSITIVES = [
+  '/internal/', '/renderer/', '/renderers/', '/dist/', '/build/', '/generated/', '/node_modules/'
+];
+
+function isFalsePositive(relPath) {
+  const normalized = '/' + relPath + '/'; // relPath is already POSIX
+  if (FALSE_POSITIVES.some(fp => normalized.includes(fp))) return true;
+  if (relPath.includes('.test.') || relPath.includes('.spec.')) return true;
+  // Exclude config files usually not entry points
+  if (relPath.endsWith('.config.js') || relPath.endsWith('.config.ts')) return true;
+  return false;
+}
+
+function findEntryPoints(projectType, flatFiles, rootPath) {
+  let entries = [];
+  const validFiles = flatFiles.filter(f => !isFalsePositive(f));
+  const validSet = new Set(validFiles);
+  
+  if (projectType === 'Node.js / JavaScript' || projectType.startsWith('Node.js')) {
+    try {
+      const pkgPath = path.join(rootPath, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        if (pkg.bin) {
+          if (typeof pkg.bin === 'string') entries.push(pkg.bin);
+          else Object.values(pkg.bin).forEach(b => entries.push(b));
+        }
+        if (pkg.main) entries.push(pkg.main);
+      }
+    } catch {}
+    
+    // Normalize and filter package.json entries to ensure they exist
+    entries = entries.map(e => toPosix(e).replace(/^\.\//, '')).filter(e => validSet.has(e));
+    
+    if (entries.length === 0) {
+      const fallbacks = ['src/index.ts', 'src/index.js', 'lib/index.js', 'index.js'];
+      for (const f of fallbacks) {
+        if (validSet.has(f)) { entries.push(f); break; }
+      }
+    }
+  } else if (projectType === 'React' || projectType === 'Next.js' || projectType === 'Vue.js' || projectType === 'Angular' || projectType === 'Svelte') {
+    const priorities = ['src/main.tsx', 'src/main.jsx', 'pages/_app.tsx', 'app/layout.tsx', 'src/App.tsx', 'index.html'];
+    for (const p of priorities) {
+      if (validSet.has(p)) { entries.push(p); break; }
+    }
+  } else if (projectType.includes('Java')) {
+    const applicationJava = validFiles.filter(f => f.endsWith('Application.java'));
+    if (applicationJava.length > 0) {
+      entries.push(...applicationJava);
+    } else {
+      for (const f of validFiles) {
+        if (f.endsWith('.java')) {
+          try {
+            const content = fs.readFileSync(path.join(rootPath, f), 'utf8');
+            if (content.includes('public static void main')) {
+              entries.push(f);
+              break;
+            }
+          } catch {}
+        }
+      }
+    }
+  } else if (projectType.includes('Python')) {
+    const priorities = ['main.py', 'app.py', '__main__.py'];
+    for (const p of priorities) {
+      if (validSet.has(p)) { entries.push(p); break; }
+    }
+    if (entries.length === 0) {
+      for (const f of validFiles) {
+        if (f.endsWith('.py')) {
+          try {
+            const content = fs.readFileSync(path.join(rootPath, f), 'utf8');
+            if (content.includes('if __name__ == "__main__":') || content.includes("if __name__ == '__main__':")) {
+              entries.push(f);
+              break;
+            }
+          } catch {}
+        }
+      }
+    }
+  }
+  
+  if (entries.length === 0) {
+    // Fallbacks for Unknown or missed projects
+    let best = null;
+    let maxScore = -1;
+    for (const f of validFiles) {
+      if (/^(src\/)?index\.[a-z]+$/.test(f)) {
+        entries.push(f);
+        break;
+      }
+    }
+    if (entries.length === 0) {
+      for (const f of validFiles) {
+        if (f.match(/\.(js|ts|jsx|tsx|py|java|go|rb|php)$/)) {
+          try {
+            const content = fs.readFileSync(path.join(rootPath, f), 'utf8');
+            const score = (content.match(/import /g) || []).length + 
+                          (content.match(/export /g) || []).length + 
+                          (content.match(/require\(/g) || []).length;
+            if (score > maxScore) {
+              maxScore = score;
+              best = f;
+            }
+          } catch {}
+        }
+      }
+      if (best) entries.push(best);
+    }
+  }
+  
+  return Array.from(new Set(entries));
+}
+
+// ---------------------------------------------------------------------------
 // Tree helpers
 // ---------------------------------------------------------------------------
 
@@ -279,8 +386,9 @@ function countFolders(node) {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function scan(targetPath) {
+export function scan(targetPath, options = {}) {
   const rootPath = path.resolve(targetPath);
+  const includeHidden = !!options.includeHidden;
 
   // Validate target
   let stat;
@@ -293,7 +401,7 @@ export function scan(targetPath) {
   /** @type {Array<string>} */
   const flatFiles   = [];
   /** @type {Array<string>} */
-  const entryPoints = [];
+  let entryPoints = [];
 
   const startTime   = performance.now();
   let tree;
@@ -301,12 +409,13 @@ export function scan(targetPath) {
   let totalFolders = 0;
 
   if (stat.isDirectory()) {
-    tree = walkDirectory(rootPath, rootPath, flatFiles, entryPoints);
+    tree = walkDirectory(rootPath, rootPath, flatFiles, includeHidden);
     projectType = detectProjectType(rootPath);
     // Count all directory nodes in the tree (excluding root itself).
     totalFolders = countFolders(tree) - 1;
+    entryPoints = findEntryPoints(projectType, flatFiles, rootPath);
   } else if (stat.isFile()) {
-    const relFilePath = path.basename(rootPath);
+    const relFilePath = toPosix(path.basename(rootPath));
     tree = {
       type: 'directory',
       name: path.basename(path.dirname(rootPath)),
@@ -320,9 +429,7 @@ export function scan(targetPath) {
       }]
     };
     flatFiles.push(relFilePath);
-    if (isEntryPoint(relFilePath)) {
-      entryPoints.push(relFilePath);
-    }
+    entryPoints = [relFilePath]; // A single file is its own entry point
   } else {
     throw new Error(`Path is neither a file nor a directory: ${rootPath}`);
   }
