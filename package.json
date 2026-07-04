@@ -1,7 +1,7 @@
 {
-  "name": "@lakindu_perera/toren",
+  "name": "@lakindu-perera/toren",
   "version": "1.0.1",
-  "description": "A CLI that analyzes software codebases and generates onboarding insights.",
+  "description": "A powerful codebase scanner CLI tool for project analysis, framework detection, and understanding repository structure instantly.",
   "type": "module",
   "bin": {
     "toren": "./bin/toren.js"
@@ -17,11 +17,16 @@
     "lint": "node --check bin/toren.js src/scanner/scan.js"
   },
   "keywords": [
-    "cli",
-    "codebase",
-    "onboarding",
-    "developer-tool",
-    "scanner"
+    "cli tool",
+    "codebase scanner",
+    "repository analyzer",
+    "project structure viewer",
+    "framework detection",
+    "monorepo analyzer",
+    "node cli tool",
+    "developer tool",
+    "typescript cli",
+    "onboarding"
   ],
   "author": "Lakindu Perera",
   "repository": {
