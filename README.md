@@ -11,16 +11,16 @@
 
 ## What is Toren?
 
-**Toren** is a fast, lightweight **codebase analyzer CLI** and **project scanner tool** designed to generate instant onboarding intelligence reports. By recursively scanning any local directory, Toren detects the underlying project framework, identifies critical entry points, and visualizes the folder structure—all in milliseconds. 
+**Toren** is a fast, lightweight **codebase analyzer CLI** and **project scanner tool** designed to generate instant onboarding intelligence reports. By recursively scanning any local directory, Toren detects the underlying project framework, identifies critical entry points, and visualizes the folder structure—all in milliseconds.
 
 Built with zero external dependencies, this **Node.js repository explorer** is the ultimate **developer onboarding tool** to help you conquer the "first 5 minutes" of navigating an unfamiliar repository.
 
 ---
 
-## ✨ Features
+## Features
 
 - **Recursive Project Scanning**: Fast directory traversal using native Node.js APIs.
-- **Framework Detection**: Instantly identifies Node.js, React, Vue, Python, Go, Rust, Spring Boot, and more.
+- **Framework Detection**: Instantly identifies Node.js, React, Next.js, Vue, Nuxt, Angular, Svelte, Python, Go, Rust, Spring Boot, Ruby, PHP, Elixir and more.
 - **Entry Point Detection**: Automatically pinpoints where execution begins (e.g., `index.js`, `main.ts`, `App.tsx`, `main.go`).
 - **Project Structure Visualizer**: Generates clean, hierarchical file trees.
 - **Multiple Output Formats**: Choose between `console` (default), `json`, `markdown`, or `html` reports.
@@ -29,7 +29,7 @@ Built with zero external dependencies, this **Node.js repository explorer** is t
 
 ---
 
-## 📥 Installation
+## Installation
 
 Install Toren globally via npm to make the **repository inspection CLI** available anywhere on your machine:
 
@@ -41,7 +41,7 @@ npm install -g @lakindu_perera/toren
 
 ---
 
-## 💻 CLI Usage
+## CLI Usage
 
 Toren is designed to be simple and intuitive. Point it at any directory to generate an immediate intelligence report.
 
@@ -57,6 +57,11 @@ toren --format json
 toren --format markdown
 toren --format html
 
+# Save output to a file
+toren --format markdown > PROJECT_REPORT.md
+toren --format html > report.html
+toren --format json > scan.json
+
 # Lifecycle & Help Commands
 toren --help
 toren --version
@@ -64,9 +69,24 @@ toren --doctor
 toren --uninstall
 ```
 
+### All Flags
+
+| Flag | Description |
+|------|-------------|
+| `[path]` | Directory to scan. Defaults to the current directory (`.`). |
+| `--format <type>` | Output format: `console` (default), `json`, `markdown`, `html`. |
+| `--include-hidden` | Include hidden files and dot-directories in the scan. |
+| `--max-files <N>` | Override the default 50,000-file scan limit. |
+| `--help` / `-h` | Show usage information. |
+| `--version` / `-V` | Print the installed version number. |
+| `--doctor` | Diagnose the global installation health. |
+| `--uninstall` | Safely remove Toren from the global npm environment. |
+
+> **Note:** `--format md` is not a valid alias. Use `--format markdown` in full.
+
 ---
 
-## 📊 Output Examples
+## Output Examples
 
 ### Console Output Example
 The default `console` format renders a beautiful summary directly in your terminal:
@@ -85,7 +105,6 @@ The default `console` format renders a beautiful summary directly in your termin
 🚪  Entry Points
 ────────────────────────────────────────────────────────────────────────────────
   →  src/main.tsx
-  →  src/App.tsx
 
 📁  Folder Structure  (first 20 files)
 ────────────────────────────────────────────────────────────────────────────────
@@ -124,8 +143,7 @@ Generate machine-readable output for scripts, toolchains, or AI context windows 
     "scanDurationMs": 4
   },
   "entryPoints": [
-    "src/main.tsx",
-    "src/App.tsx"
+    "src/main.tsx"
   ],
   "structure": [
     {
@@ -141,11 +159,11 @@ Generate machine-readable output for scripts, toolchains, or AI context windows 
 }
 ```
 
-*Note: You can also generate rich, Github-flavored Markdown (`--format markdown`) or self-contained HTML reports (`--format html`) for documentation purposes!*
+*Note: You can also generate rich, GitHub-flavored Markdown (`--format markdown`) or self-contained HTML reports (`--format html`) for documentation purposes!*
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 Toren's internal architecture emphasizes modular design, separation of concerns, and a strict **zero dependency** philosophy.
 
@@ -156,19 +174,19 @@ Toren's internal architecture emphasizes modular design, separation of concerns,
 
 ---
 
-## 🔥 Why Toren Exists
+## Why Toren Exists
 
-Modern software development moves fast, but **onboarding into large codebases is slow**. 
+Modern software development moves fast, but **onboarding into large codebases is slow**.
 
 When developers join a new team, review a complex pull request, or audit an open-source project, they waste valuable time manually clicking through folders and reading `package.json` files just to understand the basic structure.
 
-**Toren solves the “first 5 minutes of any repo” problem.** 
+**Toren solves the "first 5 minutes of any repo" problem.**
 
 As a dedicated **developer onboarding tool**, Toren automates the initial discovery phase. In a single command, it tells you exactly what the project is, where the code starts executing, and how the folders are structured. By eliminating the manual guesswork of repository inspection, Toren drastically improves developer productivity.
 
 ---
 
-## 🚀 Roadmap (Future Improvements)
+## Roadmap (Future Improvements)
 
 - `.torenignore` configuration file support
 - Dependency graph analysis and visualization
@@ -177,7 +195,7 @@ As a dedicated **developer onboarding tool**, Toren automates the initial discov
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions to improve this codebase analyzer CLI are always welcome!
 
@@ -199,4 +217,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 👨‍💻 Author
 
-Built with ❤️ by **[Lakindu Perera](https://github.com/lakindudev)**. 
+Built with by **[Lakindu Perera](https://github.com/lakindudev)**.

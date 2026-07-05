@@ -10,6 +10,8 @@
  *   toren --help              Print usage
  *   toren --doctor            Check global installation health
  *   toren --uninstall         Safely remove global installation
+ *   toren --include-hidden    Include hidden files (dot-files) in scan
+ *   toren --max-files <N>     Override the max file scan limit
  *
  * Adding a new output format
  * ──────────────────────────
@@ -42,13 +44,14 @@ function printHelp() {
   const formatList = SUPPORTED_FORMATS.map(f => `      ${f}`).join('\n');
   console.log(`
 \x1b[1mUsage:\x1b[0m
-  toren [path]              Scan a directory (defaults to current directory)
-  toren --format <type>     Select output format (default: console)
-  toren --help              Show this help message
-  toren --version           Show version number
-  toren --doctor            Check global installation health
-  toren --uninstall         Safely remove global installation
-  toren --max-files <N>     Set max file scan limit (default 50000)
+  toren [path]                Scan a directory (defaults to current directory)
+  toren --format <type>       Select output format (default: console)
+  toren --include-hidden      Include hidden dot-files in the scan
+  toren --max-files <N>       Set max file scan limit (default: 50000)
+  toren --help                Show this help message
+  toren --version             Show version number
+  toren --doctor              Check global installation health
+  toren --uninstall           Safely remove global installation
 
 \x1b[1mOutput Formats:\x1b[0m
 ${formatList}
@@ -56,10 +59,13 @@ ${formatList}
     console is the default.
 
 \x1b[1mExamples:\x1b[0m
-  toren .                   Scan the current directory
-  toren ./my-project        Scan a specific project folder
-  toren --format json       Output results as JSON
-  toren --format json .     Scan a path and output as JSON
+  toren .                              Scan the current directory
+  toren ./my-project                   Scan a specific project folder
+  toren --format json .                Output results as JSON
+  toren --format markdown . > out.md   Save a Markdown report to a file
+  toren --format html . > out.html     Save an HTML report to a file
+  toren --include-hidden .             Include hidden dot-files in scan
+  toren --max-files 100000 .           Override the 50k file scan limit
 `);
 }
 
@@ -70,10 +76,10 @@ ${formatList}
 /**
  * @typedef {Object} ParsedArgs
  * @property {'exit'|'wait'|'scan'} action
- * @property {string}  [target]  - Resolved path to scan
- * @property {string}  [format]  - Renderer format name
+ * @property {string}  [target]        - Resolved path to scan
+ * @property {string}  [format]        - Renderer format name
  * @property {boolean} [includeHidden] - Whether to include hidden files
- * @property {number}  [maxFiles] - Max files to scan
+ * @property {number}  [maxFiles]      - Max files to scan
  */
 
 /**
@@ -91,18 +97,18 @@ function parseArgs() {
   // ── Informational flags ─────────────────────────────────────────────────
   if (args.includes('--help') || args.includes('-h')) {
     printHelp();
-    return { action: 'exit' };
+    return { action: 'exit', code: 0 };
   }
 
-  if (args.includes('--version') || args.includes('-v') || args.includes('--v')) {
+  if (args.includes('--version') || args.includes('-V')) {
     console.log(pkg.version);
-    return { action: 'exit' };
+    return { action: 'exit', code: 0 };
   }
 
   // ── Lifecycle commands ──────────────────────────────────────────────────
   if (args.includes('--doctor')) {
     runDoctor(pkg.version);
-    return { action: 'exit' };
+    return { action: 'exit', code: 0 };
   }
 
   if (args.includes('--uninstall')) {
@@ -117,9 +123,19 @@ function parseArgs() {
 
   const formatIdx = args.indexOf('--format');
   if (formatIdx !== -1) {
-    // Accept the token immediately following --format.
-    // If the user omits the value (e.g. toren --format) default is used.
-    format = args[formatIdx + 1] ?? DEFAULT_FORMAT;
+    const nextToken = args[formatIdx + 1];
+    // If the next token is missing or starts with '-', the user omitted the value.
+    if (nextToken === undefined || nextToken.startsWith('-')) {
+      console.error('');
+      console.error('\x1b[31m  --format requires a value.\x1b[0m');
+      console.error('');
+      console.error(`  Supported formats: ${SUPPORTED_FORMATS.join(', ')}`);
+      console.error('');
+      console.error('  Run \x1b[36mtoren --help\x1b[0m for usage.');
+      console.error('');
+      return { action: 'exit', code: 1 };
+    }
+    format = nextToken;
   } else if (args.includes('--json')) {
     format = 'json';
   }
@@ -127,35 +143,59 @@ function parseArgs() {
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
 
-
   // ── Target path ─────────────────────────────────────────────────────────
   // Build the set of tokens that are consumed as values by named flags so
   // we don't accidentally treat them as the positional path argument.
-  // Currently only --format consumes a value token.
   const consumedValues = new Set();
-  if (formatIdx !== -1 && args[formatIdx + 1] !== undefined) {
+  if (formatIdx !== -1 && args[formatIdx + 1] !== undefined && !args[formatIdx + 1].startsWith('-')) {
     consumedValues.add(args[formatIdx + 1]);
   }
 
   // ── Max files ───────────────────────────────────────────────────────────
   let maxFiles = undefined;
   const maxFilesIdx = args.indexOf('--max-files');
-  if (maxFilesIdx !== -1 && args[maxFilesIdx + 1] !== undefined) {
-    maxFiles = parseInt(args[maxFilesIdx + 1], 10);
-    consumedValues.add(args[maxFilesIdx + 1]);
+  if (maxFilesIdx !== -1) {
+    const rawVal = args[maxFilesIdx + 1];
+    if (rawVal === undefined || rawVal.startsWith('-')) {
+      console.error('');
+      console.error('\x1b[31m  --max-files requires a numeric value.\x1b[0m');
+      console.error('  Example: toren --max-files 100000');
+      console.error('');
+      return { action: 'exit', code: 1 };
+    }
+    maxFiles = parseInt(rawVal, 10);
+    if (isNaN(maxFiles) || maxFiles < 1) {
+      console.error('');
+      console.error(`\x1b[31m  --max-files must be a positive integer, got: ${rawVal}\x1b[0m`);
+      console.error('');
+      return { action: 'exit', code: 1 };
+    }
+    consumedValues.add(rawVal);
   }
 
   // First non-flag, non-consumed token is the target path; default to cwd.
   const target = args.find(a => !a.startsWith('-') && !consumedValues.has(a)) ?? '.';
 
   // ── Unknown flag check ──────────────────────────────────────────────────
-  const knownFlags = new Set(['--help', '-h', '--version', '-v', '--v', '--doctor', '--uninstall', '--format', '--json', '--include-hidden', '--max-files']);
-  const unknownFlag = args.find(a => a.startsWith('-') && !knownFlags.has(a) && !consumedValues.has(a));
-  
+  const knownFlags = new Set([
+    '--help', '-h',
+    '--version', '-V',
+    '--doctor',
+    '--uninstall',
+    '--format',
+    '--json',
+    '--include-hidden',
+    '--max-files',
+  ]);
+
+  const unknownFlag = args.find(
+    a => a.startsWith('-') && !knownFlags.has(a) && !consumedValues.has(a),
+  );
+
   if (unknownFlag) {
     console.error(`\x1b[31m  Unknown flag: ${unknownFlag}\x1b[0m`);
     console.error(`  Run \x1b[36mtoren --help\x1b[0m for usage.\n`);
-    return { action: 'exit' };
+    return { action: 'exit', code: 1 };
   }
 
   return { action: 'scan', target, format, includeHidden, maxFiles };
@@ -193,7 +233,10 @@ function assertValidFormat(format) {
 
 (function main() {
   const parsed = parseArgs();
-  if (parsed.action === 'exit') process.exit(0);
+
+  if (parsed.action === 'exit') {
+    process.exit(parsed.code ?? 0);
+  }
   if (parsed.action === 'wait') return;
 
   // Validate before scanning — fail fast on bad format names.
@@ -202,9 +245,9 @@ function assertValidFormat(format) {
   const render = renderers[parsed.format];
 
   try {
-    const result = scan(parsed.target, { 
-      includeHidden: parsed.includeHidden, 
-      maxFiles: parsed.maxFiles 
+    const result = scan(parsed.target, {
+      includeHidden: parsed.includeHidden,
+      maxFiles:      parsed.maxFiles,
     });
     render(result, { cwd: process.cwd() });
   } catch (err) {

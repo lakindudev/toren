@@ -6,15 +6,15 @@
   "bin": {
     "toren": "bin/toren.js"
   },
-  "preferGlobal": true,
-  "main": "bin/toren.js",
   "files": [
     "bin",
-    "src"
+    "src",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "start": "node bin/toren.js",
-    "lint": "node --check bin/toren.js src/scanner/scan.js"
+    "lint": "node --check bin/toren.js src/scanner/scan.js src/lifecycle.js src/renderers/index.js src/renderers/console-renderer.js src/renderers/json-renderer.js src/renderers/markdown-renderer.js src/renderers/html-renderer.js"
   },
   "keywords": [
     "cli tool",
@@ -25,7 +25,6 @@
     "monorepo analyzer",
     "node cli tool",
     "developer tool",
-    "typescript cli",
     "onboarding"
   ],
   "author": "Lakindu Perera",

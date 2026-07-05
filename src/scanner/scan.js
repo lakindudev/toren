@@ -154,9 +154,10 @@ function walkDirectory(dirPath, rootPath, flatFiles, includeHidden, maxFiles) {
   let entries;
   try {
     entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  } catch (err) {
-    // Permission-denied or unreadable directory — skip and log warnings instead of failing.
-    console.warn(`[warn] Skipping ${dirPath} (permission denied)`);
+  } catch {
+    // Permission-denied or unreadable directory — skip silently.
+    // Write to stderr so stdout remains clean for piped/redirected output.
+    process.stderr.write(`[toren] warning: skipping unreadable directory: ${dirPath}\n`);
     return node;
   }
 
@@ -240,15 +241,16 @@ function refineNodeProjectType(pkgPath) {
       ...pkg.peerDependencies,
     };
 
-    if (deps['next'])         return 'Next.js';
-    if (deps['react'])        return 'React';
-    if (deps['vue'])          return 'Vue.js';
+    if (deps['next'])          return 'Next.js';
+    if (deps['nuxt'] || deps['nuxt3']) return 'Nuxt.js';
+    if (deps['react'])         return 'React';
+    if (deps['vue'])           return 'Vue.js';
     if (deps['@angular/core']) return 'Angular';
-    if (deps['svelte'])       return 'Svelte';
-    if (deps['express'])      return 'Node.js / Express';
-    if (deps['fastify'])      return 'Node.js / Fastify';
-    if (deps['koa'])          return 'Node.js / Koa';
-    if (deps['typescript'])   return 'Node.js / TypeScript';
+    if (deps['svelte'])        return 'Svelte';
+    if (deps['express'])       return 'Node.js / Express';
+    if (deps['fastify'])       return 'Node.js / Fastify';
+    if (deps['koa'])           return 'Node.js / Koa';
+    if (deps['typescript'])    return 'Node.js / TypeScript';
   } catch {
     // Malformed package.json — fall through.
   }
@@ -299,8 +301,18 @@ function findEntryPoints(projectType, flatFiles, rootPath) {
         if (validSet.has(f)) { entries.push(f); break; }
       }
     }
-  } else if (projectType === 'React' || projectType === 'Next.js' || projectType === 'Vue.js' || projectType === 'Angular' || projectType === 'Svelte') {
-    const priorities = ['src/main.tsx', 'src/main.jsx', 'pages/_app.tsx', 'app/layout.tsx', 'src/App.tsx', 'index.html'];
+  } else if (
+    projectType === 'React'   || projectType === 'Next.js' ||
+    projectType === 'Nuxt.js' || projectType === 'Vue.js'  ||
+    projectType === 'Angular' || projectType === 'Svelte'
+  ) {
+    const priorities = [
+      'src/main.tsx', 'src/main.jsx', 'src/main.ts', 'src/main.js',
+      'pages/_app.tsx', 'pages/_app.js',
+      'app/layout.tsx', 'app/layout.js',
+      'src/App.tsx', 'src/App.jsx',
+      'index.html',
+    ];
     for (const p of priorities) {
       if (validSet.has(p)) { entries.push(p); break; }
     }
@@ -322,7 +334,7 @@ function findEntryPoints(projectType, flatFiles, rootPath) {
       }
     }
   } else if (projectType.includes('Python')) {
-    const priorities = ['main.py', 'app.py', '__main__.py'];
+    const priorities = ['main.py', 'app.py', '__main__.py', 'manage.py', 'run.py'];
     for (const p of priorities) {
       if (validSet.has(p)) { entries.push(p); break; }
     }
@@ -349,25 +361,42 @@ function findEntryPoints(projectType, flatFiles, rootPath) {
     for (const p of priorities) {
       if (validSet.has(p)) { entries.push(p); break; }
     }
+  } else if (projectType === 'Ruby') {
+    const priorities = ['app.rb', 'main.rb', 'config.ru', 'Rakefile'];
+    for (const p of priorities) {
+      if (validSet.has(p)) { entries.push(p); break; }
+    }
+  } else if (projectType === 'PHP / Composer') {
+    const priorities = ['index.php', 'public/index.php', 'src/index.php', 'artisan'];
+    for (const p of priorities) {
+      if (validSet.has(p)) { entries.push(p); break; }
+    }
+  } else if (projectType === 'Elixir') {
+    const priorities = ['lib/mix/tasks/run.ex', 'mix.exs'];
+    for (const p of priorities) {
+      if (validSet.has(p)) { entries.push(p); break; }
+    }
   }
   
   if (entries.length === 0) {
-    // Fallbacks for Unknown or missed projects
-    let best = null;
-    let maxScore = -1;
+    // Fallbacks for Unknown or unrecognised projects.
+    // First try well-known index file patterns.
     for (const f of validFiles) {
       if (/^(src\/)?index\.[a-z]+$/.test(f)) {
         entries.push(f);
         break;
       }
     }
+    // If still empty, pick the file with the highest import/export density.
     if (entries.length === 0) {
+      let best = null;
+      let maxScore = -1;
       for (const f of validFiles) {
         if (f.match(/\.(js|ts|jsx|tsx|py|java|go|rs|rb|php)$/)) {
           try {
             const content = fs.readFileSync(path.join(rootPath, f), 'utf8');
-            const score = (content.match(/import /g) || []).length + 
-                          (content.match(/export /g) || []).length + 
+            const score = (content.match(/import /g) || []).length +
+                          (content.match(/export /g) || []).length +
                           (content.match(/require\(/g) || []).length;
             if (score > maxScore) {
               maxScore = score;
