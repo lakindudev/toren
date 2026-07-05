@@ -100,7 +100,7 @@ function parseArgs() {
     return { action: 'exit', code: 0 };
   }
 
-  if (args.includes('--version') || args.includes('-V')) {
+  if (args.includes('--version') || args.includes('-V') || args.includes('-v')) {
     console.log(pkg.version);
     return { action: 'exit', code: 0 };
   }
@@ -179,7 +179,7 @@ function parseArgs() {
   // ── Unknown flag check ──────────────────────────────────────────────────
   const knownFlags = new Set([
     '--help', '-h',
-    '--version', '-V',
+    '--version', '-V', '-v',
     '--doctor',
     '--uninstall',
     '--format',
