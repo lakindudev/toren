@@ -25,6 +25,7 @@
 import { createRequire } from 'node:module';
 import { scan }          from '../src/scanner/scan.js';
 import renderers         from '../src/renderers/index.js';
+import { getFocusedModeInfo, renderFocusedMode, FOCUSED_FLAGS } from '../src/focused-output.js';
 import { runDoctor, runUninstall } from '../src/lifecycle.js';
 
 const require = createRequire(import.meta.url);
@@ -44,14 +45,20 @@ function printHelp() {
   const formatList = SUPPORTED_FORMATS.map(f => `      ${f}`).join('\n');
   console.log(`
 \x1b[1mUsage:\x1b[0m
-  toren [path]                Scan a directory (defaults to current directory)
-  toren --format <type>       Select output format (default: console)
-  toren --include-hidden      Include hidden dot-files in the scan
-  toren --max-files <N>       Set max file scan limit (default: 50000)
-  toren --help                Show this help message
-  toren --version             Show version number
-  toren --doctor              Check global installation health
-  toren --uninstall           Safely remove global installation
+  toren [path] [options]
+
+\x1b[1mOptions:\x1b[0m
+  --project-type      Show detected project type only
+  --frameworks        Show detected frameworks only
+  --entry-points      Show detected entry points only
+  --structure         Show repository structure only
+  --format <type>     Output as console, json, markdown, or html
+  --include-hidden    Include hidden files and folders
+  --max-files <n>     Set scan file limit
+  --help              Show this help message
+  --version           Show version number
+  --doctor            Run CLI diagnostics
+  --uninstall         Remove Toren global installation
 
 \x1b[1mOutput Formats:\x1b[0m
 ${formatList}
@@ -140,6 +147,16 @@ function parseArgs() {
     format = 'json';
   }
 
+  // ── Focused Output Flags ────────────────────────────────────────────────
+  const focusedInfo = getFocusedModeInfo(args);
+  
+  if (focusedInfo.error) {
+    console.error(focusedInfo.message);
+    return { action: 'exit', code: 1 };
+  }
+
+  const focusedMode = focusedInfo.mode;
+
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
 
@@ -184,6 +201,7 @@ function parseArgs() {
     '--uninstall',
     '--format',
     '--json',
+    ...FOCUSED_FLAGS,
     '--include-hidden',
     '--max-files',
   ]);
@@ -198,7 +216,7 @@ function parseArgs() {
     return { action: 'exit', code: 1 };
   }
 
-  return { action: 'scan', target, format, includeHidden, maxFiles };
+  return { action: 'scan', target, format, includeHidden, maxFiles, focusedMode };
 }
 
 // ---------------------------------------------------------------------------
@@ -249,7 +267,12 @@ function assertValidFormat(format) {
       includeHidden: parsed.includeHidden,
       maxFiles:      parsed.maxFiles,
     });
-    render(result, { cwd: process.cwd() });
+    
+    if (parsed.focusedMode) {
+      renderFocusedMode(parsed.focusedMode, result);
+    } else {
+      render(result, { cwd: process.cwd() });
+    }
   } catch (err) {
     // Render errors in the requested format where possible.
     if (parsed.format === 'json') {

@@ -99,8 +99,11 @@ function row(label, value, ...valueCodes) {
  * @param {string}            prefix   - Accumulated indentation
  * @param {boolean}           isLast   - Whether this is the last sibling
  * @param {{ count: number, maxReached: boolean }} counter  - Shared mutable file counter
+ * @param {number}            limit    - Max files to render
+ * @param {number}            depth    - Current depth
+ * @param {number}            maxDepth - Max recursion depth
  */
-function renderTree(node, prefix, isLast, counter, depth = 0, maxDepth = 4) {
+function renderTree(node, prefix, isLast, counter, limit = PREVIEW_LIMIT, depth = 0, maxDepth = 4) {
   if (counter.maxReached) return;
   if (depth >= maxDepth) return;
 
@@ -117,7 +120,7 @@ function renderTree(node, prefix, isLast, counter, depth = 0, maxDepth = 4) {
     }
 
     for (let i = 0; i < children.length; i++) {
-      if (counter.count >= PREVIEW_LIMIT) {
+      if (counter.count >= limit) {
         console.log(`${prefix}${extension}└── ${paint('...', C.dim)}`);
         counter.maxReached = true;
         break;
@@ -125,7 +128,7 @@ function renderTree(node, prefix, isLast, counter, depth = 0, maxDepth = 4) {
       // Check if this child will be the last one we render due to limits
       let willBeLast = i === children.length - 1;
       
-      renderTree(children[i], prefix + extension, willBeLast, counter, depth + 1, maxDepth);
+      renderTree(children[i], prefix + extension, willBeLast, counter, limit, depth + 1, maxDepth);
       if (counter.maxReached) break;
     }
   } else {
@@ -227,4 +230,29 @@ export function render(result, options = {}) {
   divider();
   console.log(paint('  ✅  Scan complete.', C.green));
   console.log('');
+}
+
+/**
+ * Render only the project structure for the --structure flag.
+ * 
+ * @param {import('../scanner/scan.js').ScanResult} result
+ */
+export function renderStructure(result) {
+  const { tree, flatFiles } = result;
+
+  console.log(paint('Project Structure:', C.bold, C.white));
+  console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
+
+  const counter  = { count: 0, maxReached: false };
+  const children = tree.children ?? [];
+  const limit = flatFiles.length; // No preview limit for focused --structure
+
+  for (let i = 0; i < children.length; i++) {
+    if (counter.count >= limit) {
+      console.log(`└── ${paint('...', C.dim)}`);
+      break;
+    }
+    renderTree(children[i], '', i === children.length - 1, counter, limit, 0, Infinity);
+    if (counter.maxReached) break;
+  }
 }
