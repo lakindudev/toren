@@ -46,6 +46,7 @@ function printHelp() {
 \x1b[1mUsage:\x1b[0m
   toren [path]                Scan a directory (defaults to current directory)
   toren --format <type>       Select output format (default: console)
+  toren --project-type        Show detected project type only
   toren --include-hidden      Include hidden dot-files in the scan
   toren --max-files <N>       Set max file scan limit (default: 50000)
   toren --help                Show this help message
@@ -140,6 +141,9 @@ function parseArgs() {
     format = 'json';
   }
 
+  // ── Project Type Flag ───────────────────────────────────────────────────
+  const projectTypeOnly = args.includes('--project-type');
+
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
 
@@ -184,6 +188,7 @@ function parseArgs() {
     '--uninstall',
     '--format',
     '--json',
+    '--project-type',
     '--include-hidden',
     '--max-files',
   ]);
@@ -198,7 +203,7 @@ function parseArgs() {
     return { action: 'exit', code: 1 };
   }
 
-  return { action: 'scan', target, format, includeHidden, maxFiles };
+  return { action: 'scan', target, format, includeHidden, maxFiles, projectTypeOnly };
 }
 
 // ---------------------------------------------------------------------------
@@ -249,7 +254,12 @@ function assertValidFormat(format) {
       includeHidden: parsed.includeHidden,
       maxFiles:      parsed.maxFiles,
     });
-    render(result, { cwd: process.cwd() });
+    
+    if (parsed.projectTypeOnly) {
+      console.log(`Project Type: ${result.projectType}`);
+    } else {
+      render(result, { cwd: process.cwd() });
+    }
   } catch (err) {
     // Render errors in the requested format where possible.
     if (parsed.format === 'json') {
