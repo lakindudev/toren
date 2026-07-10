@@ -25,7 +25,7 @@
 import { createRequire } from 'node:module';
 import { scan }          from '../src/scanner/scan.js';
 import renderers         from '../src/renderers/index.js';
-import { renderStructure } from '../src/renderers/console-renderer.js';
+import { getFocusedModeInfo, renderFocusedMode, FOCUSED_FLAGS } from '../src/focused-output.js';
 import { runDoctor, runUninstall } from '../src/lifecycle.js';
 
 const require = createRequire(import.meta.url);
@@ -148,27 +148,14 @@ function parseArgs() {
   }
 
   // ── Focused Output Flags ────────────────────────────────────────────────
-  const projectTypeOnly = args.includes('--project-type');
-  const frameworksOnly  = args.includes('--frameworks');
-  const entryPointsOnly = args.includes('--entry-points');
-  const structureOnly   = args.includes('--structure');
-
-  const focusedFlagsCount = [
-    projectTypeOnly,
-    frameworksOnly,
-    entryPointsOnly,
-    structureOnly
-  ].filter(Boolean).length;
-
-  if (focusedFlagsCount > 1) {
-    console.error(`\x1b[31mError: focused output flags are mutually exclusive. Please use only one of:\x1b[0m`);
-    console.error(`  --project-type`);
-    console.error(`  --frameworks`);
-    console.error(`  --entry-points`);
-    console.error(`  --structure`);
-    console.error('');
+  const focusedInfo = getFocusedModeInfo(args);
+  
+  if (focusedInfo.error) {
+    console.error(focusedInfo.message);
     return { action: 'exit', code: 1 };
   }
+
+  const focusedMode = focusedInfo.mode;
 
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
@@ -214,10 +201,7 @@ function parseArgs() {
     '--uninstall',
     '--format',
     '--json',
-    '--project-type',
-    '--frameworks',
-    '--entry-points',
-    '--structure',
+    ...FOCUSED_FLAGS,
     '--include-hidden',
     '--max-files',
   ]);
@@ -232,7 +216,7 @@ function parseArgs() {
     return { action: 'exit', code: 1 };
   }
 
-  return { action: 'scan', target, format, includeHidden, maxFiles, projectTypeOnly, frameworksOnly, entryPointsOnly, structureOnly };
+  return { action: 'scan', target, format, includeHidden, maxFiles, focusedMode };
 }
 
 // ---------------------------------------------------------------------------
@@ -284,24 +268,8 @@ function assertValidFormat(format) {
       maxFiles:      parsed.maxFiles,
     });
     
-    if (parsed.projectTypeOnly) {
-      console.log(`Project Type: ${result.projectType}`);
-    } else if (parsed.frameworksOnly) {
-      if (!result.projectType || result.projectType === 'Unknown') {
-        console.log('Frameworks: None detected');
-      } else {
-        console.log('Frameworks:');
-        console.log(`- ${result.projectType}`);
-      }
-    } else if (parsed.entryPointsOnly) {
-      if (!result.entryPoints || result.entryPoints.length === 0) {
-        console.log('Entry Points: None detected');
-      } else {
-        console.log('Entry Points:');
-        result.entryPoints.forEach(ep => console.log(`- ${ep}`));
-      }
-    } else if (parsed.structureOnly) {
-      renderStructure(result);
+    if (parsed.focusedMode) {
+      renderFocusedMode(parsed.focusedMode, result);
     } else {
       render(result, { cwd: process.cwd() });
     }
