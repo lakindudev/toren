@@ -48,6 +48,7 @@ function printHelp() {
   toren --format <type>       Select output format (default: console)
   toren --project-type        Show detected project type only
   toren --frameworks          Show detected frameworks only
+  toren --entry-points        Show detected entry points only
   toren --include-hidden      Include hidden dot-files in the scan
   toren --max-files <N>       Set max file scan limit (default: 50000)
   toren --help                Show this help message
@@ -148,6 +149,9 @@ function parseArgs() {
   // ── Frameworks Flag ─────────────────────────────────────────────────────
   const frameworksOnly = args.includes('--frameworks');
 
+  // ── Entry Points Flag ───────────────────────────────────────────────────
+  const entryPointsOnly = args.includes('--entry-points');
+
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
 
@@ -194,6 +198,7 @@ function parseArgs() {
     '--json',
     '--project-type',
     '--frameworks',
+    '--entry-points',
     '--include-hidden',
     '--max-files',
   ]);
@@ -208,7 +213,7 @@ function parseArgs() {
     return { action: 'exit', code: 1 };
   }
 
-  return { action: 'scan', target, format, includeHidden, maxFiles, projectTypeOnly, frameworksOnly };
+  return { action: 'scan', target, format, includeHidden, maxFiles, projectTypeOnly, frameworksOnly, entryPointsOnly };
 }
 
 // ---------------------------------------------------------------------------
@@ -268,6 +273,13 @@ function assertValidFormat(format) {
       } else {
         console.log('Frameworks:');
         console.log(`- ${result.projectType}`);
+      }
+    } else if (parsed.entryPointsOnly) {
+      if (!result.entryPoints || result.entryPoints.length === 0) {
+        console.log('Entry Points: None detected');
+      } else {
+        console.log('Entry Points:');
+        result.entryPoints.forEach(ep => console.log(`- ${ep}`));
       }
     } else {
       render(result, { cwd: process.cwd() });
