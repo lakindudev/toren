@@ -119,7 +119,7 @@ Entry Points:
 The default `console` format renders a beautiful summary directly in your terminal:
 
 ```text
-  Toren v1.0.3  —  Codebase Onboarding Intelligence
+  Toren v1.0.4  —  Codebase Onboarding Intelligence
 
 🔍  Project Summary
 ────────────────────────────────────────────────────────────────────────────────
