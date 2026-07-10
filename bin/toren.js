@@ -47,6 +47,7 @@ function printHelp() {
   toren [path]                Scan a directory (defaults to current directory)
   toren --format <type>       Select output format (default: console)
   toren --project-type        Show detected project type only
+  toren --frameworks          Show detected frameworks only
   toren --include-hidden      Include hidden dot-files in the scan
   toren --max-files <N>       Set max file scan limit (default: 50000)
   toren --help                Show this help message
@@ -144,6 +145,9 @@ function parseArgs() {
   // ── Project Type Flag ───────────────────────────────────────────────────
   const projectTypeOnly = args.includes('--project-type');
 
+  // ── Frameworks Flag ─────────────────────────────────────────────────────
+  const frameworksOnly = args.includes('--frameworks');
+
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
 
@@ -189,6 +193,7 @@ function parseArgs() {
     '--format',
     '--json',
     '--project-type',
+    '--frameworks',
     '--include-hidden',
     '--max-files',
   ]);
@@ -203,7 +208,7 @@ function parseArgs() {
     return { action: 'exit', code: 1 };
   }
 
-  return { action: 'scan', target, format, includeHidden, maxFiles, projectTypeOnly };
+  return { action: 'scan', target, format, includeHidden, maxFiles, projectTypeOnly, frameworksOnly };
 }
 
 // ---------------------------------------------------------------------------
@@ -257,6 +262,13 @@ function assertValidFormat(format) {
     
     if (parsed.projectTypeOnly) {
       console.log(`Project Type: ${result.projectType}`);
+    } else if (parsed.frameworksOnly) {
+      if (!result.projectType || result.projectType === 'Unknown') {
+        console.log('Frameworks: None detected');
+      } else {
+        console.log('Frameworks:');
+        console.log(`- ${result.projectType}`);
+      }
     } else {
       render(result, { cwd: process.cwd() });
     }
