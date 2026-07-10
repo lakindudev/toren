@@ -25,6 +25,7 @@
 import { createRequire } from 'node:module';
 import { scan }          from '../src/scanner/scan.js';
 import renderers         from '../src/renderers/index.js';
+import { renderStructure } from '../src/renderers/console-renderer.js';
 import { runDoctor, runUninstall } from '../src/lifecycle.js';
 
 const require = createRequire(import.meta.url);
@@ -49,6 +50,7 @@ function printHelp() {
   toren --project-type        Show detected project type only
   toren --frameworks          Show detected frameworks only
   toren --entry-points        Show detected entry points only
+  toren --structure           Show repository structure only
   toren --include-hidden      Include hidden dot-files in the scan
   toren --max-files <N>       Set max file scan limit (default: 50000)
   toren --help                Show this help message
@@ -152,6 +154,9 @@ function parseArgs() {
   // ── Entry Points Flag ───────────────────────────────────────────────────
   const entryPointsOnly = args.includes('--entry-points');
 
+  // ── Structure Flag ──────────────────────────────────────────────────────
+  const structureOnly = args.includes('--structure');
+
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
 
@@ -199,6 +204,7 @@ function parseArgs() {
     '--project-type',
     '--frameworks',
     '--entry-points',
+    '--structure',
     '--include-hidden',
     '--max-files',
   ]);
@@ -213,7 +219,7 @@ function parseArgs() {
     return { action: 'exit', code: 1 };
   }
 
-  return { action: 'scan', target, format, includeHidden, maxFiles, projectTypeOnly, frameworksOnly, entryPointsOnly };
+  return { action: 'scan', target, format, includeHidden, maxFiles, projectTypeOnly, frameworksOnly, entryPointsOnly, structureOnly };
 }
 
 // ---------------------------------------------------------------------------
@@ -281,6 +287,8 @@ function assertValidFormat(format) {
         console.log('Entry Points:');
         result.entryPoints.forEach(ep => console.log(`- ${ep}`));
       }
+    } else if (parsed.structureOnly) {
+      renderStructure(result);
     } else {
       render(result, { cwd: process.cwd() });
     }
