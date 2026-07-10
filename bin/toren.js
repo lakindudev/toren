@@ -45,18 +45,20 @@ function printHelp() {
   const formatList = SUPPORTED_FORMATS.map(f => `      ${f}`).join('\n');
   console.log(`
 \x1b[1mUsage:\x1b[0m
-  toren [path]                Scan a directory (defaults to current directory)
-  toren --format <type>       Select output format (default: console)
-  toren --project-type        Show detected project type only
-  toren --frameworks          Show detected frameworks only
-  toren --entry-points        Show detected entry points only
-  toren --structure           Show repository structure only
-  toren --include-hidden      Include hidden dot-files in the scan
-  toren --max-files <N>       Set max file scan limit (default: 50000)
-  toren --help                Show this help message
-  toren --version             Show version number
-  toren --doctor              Check global installation health
-  toren --uninstall           Safely remove global installation
+  toren [path] [options]
+
+\x1b[1mOptions:\x1b[0m
+  --project-type      Show detected project type only
+  --frameworks        Show detected frameworks only
+  --entry-points      Show detected entry points only
+  --structure         Show repository structure only
+  --format <type>     Output as console, json, markdown, or html
+  --include-hidden    Include hidden files and folders
+  --max-files <n>     Set scan file limit
+  --help              Show this help message
+  --version           Show version number
+  --doctor            Run CLI diagnostics
+  --uninstall         Remove Toren global installation
 
 \x1b[1mOutput Formats:\x1b[0m
 ${formatList}
@@ -145,17 +147,28 @@ function parseArgs() {
     format = 'json';
   }
 
-  // ── Project Type Flag ───────────────────────────────────────────────────
+  // ── Focused Output Flags ────────────────────────────────────────────────
   const projectTypeOnly = args.includes('--project-type');
-
-  // ── Frameworks Flag ─────────────────────────────────────────────────────
-  const frameworksOnly = args.includes('--frameworks');
-
-  // ── Entry Points Flag ───────────────────────────────────────────────────
+  const frameworksOnly  = args.includes('--frameworks');
   const entryPointsOnly = args.includes('--entry-points');
+  const structureOnly   = args.includes('--structure');
 
-  // ── Structure Flag ──────────────────────────────────────────────────────
-  const structureOnly = args.includes('--structure');
+  const focusedFlagsCount = [
+    projectTypeOnly,
+    frameworksOnly,
+    entryPointsOnly,
+    structureOnly
+  ].filter(Boolean).length;
+
+  if (focusedFlagsCount > 1) {
+    console.error(`\x1b[31mError: focused output flags are mutually exclusive. Please use only one of:\x1b[0m`);
+    console.error(`  --project-type`);
+    console.error(`  --frameworks`);
+    console.error(`  --entry-points`);
+    console.error(`  --structure`);
+    console.error('');
+    return { action: 'exit', code: 1 };
+  }
 
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
