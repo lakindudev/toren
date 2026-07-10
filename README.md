@@ -62,6 +62,12 @@ toren --format markdown > PROJECT_REPORT.md
 toren --format html > report.html
 toren --format json > scan.json
 
+# Focused Output Modes (Mutually Exclusive)
+toren --project-type
+toren --frameworks
+toren --entry-points
+toren --structure
+
 # Lifecycle & Help Commands
 toren --help
 toren --version
@@ -74,6 +80,10 @@ toren --uninstall
 | Flag | Description |
 |------|-------------|
 | `[path]` | Directory to scan. Defaults to the current directory (`.`). |
+| `--project-type` | Show detected project type only. |
+| `--frameworks` | Show detected frameworks only. |
+| `--entry-points` | Show detected entry points only. |
+| `--structure` | Show repository structure only. |
 | `--format <type>` | Output format: `console` (default), `json`, `markdown`, `html`. |
 | `--include-hidden` | Include hidden files and dot-directories in the scan. |
 | `--max-files <N>` | Override the default 50,000-file scan limit. |
@@ -83,10 +93,27 @@ toren --uninstall
 | `--uninstall` | Safely remove Toren from the global npm environment. |
 
 > **Note:** `--format md` is not a valid alias. Use `--format markdown` in full.
+> **Note:** Focused output flags (`--project-type`, `--frameworks`, `--entry-points`, `--structure`) are mutually exclusive.
 
 ---
 
 ## Output Examples
+
+### Focused Output Example
+Sometimes you only need a specific piece of intelligence for use in a script or a quick lookup. Use the focused output flags to bypass the full report:
+
+```bash
+$ toren --project-type
+Project Type: Node.js / JavaScript
+
+$ toren --frameworks
+Frameworks:
+- React
+
+$ toren --entry-points
+Entry Points:
+- src/main.tsx
+```
 
 ### Console Output Example
 The default `console` format renders a beautiful summary directly in your terminal:
