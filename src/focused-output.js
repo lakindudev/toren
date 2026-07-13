@@ -8,7 +8,8 @@ export const FOCUSED_FLAGS = [
   '--project-type',
   '--frameworks',
   '--entry-points',
-  '--structure'
+  '--structure',
+  '--configs'
 ];
 
 /**
@@ -66,6 +67,15 @@ export function renderFocusedMode(mode, result) {
       
     case '--structure':
       renderStructure(result);
+      break;
+      
+    case '--configs':
+      console.log('Configuration Files\n');
+      if (!result.configs || result.configs.length === 0) {
+        console.log('No configuration files found');
+      } else {
+        result.configs.forEach(c => console.log(`✓ ${c}`));
+      }
       break;
   }
 }

@@ -52,6 +52,7 @@ function printHelp() {
   --frameworks        Show detected frameworks only
   --entry-points      Show detected entry points only
   --structure         Show repository structure only
+  --configs           Show detected configuration files only
   --format <type>     Output as console, json, markdown, or html
   --include-hidden    Include hidden files and folders
   --max-files <n>     Set scan file limit
