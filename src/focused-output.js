@@ -9,7 +9,8 @@ export const FOCUSED_FLAGS = [
   '--frameworks',
   '--entry-points',
   '--structure',
-  '--configs'
+  '--configs',
+  '--scripts'
 ];
 
 /**
@@ -75,6 +76,15 @@ export function renderFocusedMode(mode, result) {
         console.log('No configuration files found');
       } else {
         result.configs.forEach(c => console.log(`✓ ${c}`));
+      }
+      break;
+
+    case '--scripts':
+      console.log('Available Scripts\n');
+      if (!result.scripts || result.scripts.length === 0) {
+        console.log('No scripts found');
+      } else {
+        result.scripts.forEach(s => console.log(s.name));
       }
       break;
   }

@@ -53,6 +53,7 @@ function printHelp() {
   --entry-points      Show detected entry points only
   --structure         Show repository structure only
   --configs           Show detected configuration files only
+  --scripts           Show available package scripts only
   --format <type>     Output as console, json, markdown, or html
   --include-hidden    Include hidden files and folders
   --max-files <n>     Set scan file limit
