@@ -8,7 +8,9 @@ export const FOCUSED_FLAGS = [
   '--project-type',
   '--frameworks',
   '--entry-points',
-  '--structure'
+  '--structure',
+  '--configs',
+  '--scripts'
 ];
 
 /**
@@ -66,6 +68,28 @@ export function renderFocusedMode(mode, result) {
       
     case '--structure':
       renderStructure(result);
+      break;
+      
+    case '--configs':
+      console.log('Configuration Files\n');
+      if (!result.configs || result.configs.length === 0) {
+        console.log('No configuration files found');
+      } else {
+        result.configs.forEach(c => console.log(`✓ ${c}`));
+      }
+      break;
+
+    case '--scripts':
+      console.log('Available Scripts\n');
+      if (!result.scripts || result.scripts.length === 0) {
+        console.log('No scripts found');
+      } else {
+        const maxNameLen = Math.max(...result.scripts.map(s => s.name.length));
+        result.scripts.forEach(s => {
+          const paddedName = s.name.padEnd(maxNameLen + 6, ' ');
+          console.log(`${paddedName}${s.command}`);
+        });
+      }
       break;
   }
 }

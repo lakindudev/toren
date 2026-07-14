@@ -20,6 +20,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { detectConfigs } from '../detectors/config-detector.js';
+import { detectScripts } from '../detectors/script-detector.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -96,6 +98,8 @@ const PROJECT_TYPE_MARKERS = [
  * @property {string}              rootPath       - Absolute path that was scanned
  * @property {string}              projectType    - Detected project type label
  * @property {Array<string>}       entryPoints    - Relative paths of detected entry points
+ * @property {Array<string>}       configs        - Relative paths of detected config files
+ * @property {Array<{name: string, command: string}>} scripts - Parsed package scripts
  * @property {DirNode}             tree           - Full in-memory file tree
  * @property {Array<string>}       flatFiles      - All relative file paths (flat list)
  * @property {number}              totalFolders   - Total number of directories walked
@@ -453,6 +457,10 @@ export function scan(targetPath, options = {}) {
   const flatFiles   = [];
   /** @type {Array<string>} */
   let entryPoints = [];
+  /** @type {Array<string>} */
+  let configs = [];
+  /** @type {Array<{name: string, command: string}>} */
+  let scripts = [];
 
   const startTime   = performance.now();
   let tree;
@@ -465,6 +473,8 @@ export function scan(targetPath, options = {}) {
     // Count all directory nodes in the tree (excluding root itself).
     totalFolders = countFolders(tree) - 1;
     entryPoints = findEntryPoints(projectType, flatFiles, rootPath);
+    configs = detectConfigs(flatFiles).configs;
+    scripts = detectScripts(rootPath).scripts;
   } else if (stat.isFile()) {
     const relFilePath = toPosix(path.basename(rootPath));
     tree = {
@@ -481,6 +491,8 @@ export function scan(targetPath, options = {}) {
     };
     flatFiles.push(relFilePath);
     entryPoints = [relFilePath]; // A single file is its own entry point
+    configs = detectConfigs(flatFiles).configs;
+    scripts = detectScripts(path.dirname(rootPath)).scripts;
   } else {
     throw new Error(`Path is neither a file nor a directory: ${rootPath}`);
   }
@@ -491,6 +503,8 @@ export function scan(targetPath, options = {}) {
     rootPath,
     projectType,
     entryPoints,
+    configs,
+    scripts,
     tree,
     flatFiles,
     totalFolders,
