@@ -220,6 +220,27 @@ function sectionSummary(out, result, relRoot) {
 
 /**
  * @param {string[]} out
+ * @param {string[]} configs
+ */
+function sectionConfigurationFiles(out, configs) {
+  out.push('');
+  out.push('## Configuration Files');
+  out.push('');
+
+  if (configs.length === 0) {
+    out.push('No configuration files detected.');
+  } else {
+    for (const c of configs) {
+      out.push(`- ${c}`);
+    }
+  }
+
+  out.push('');
+  out.push('---');
+}
+
+/**
+ * @param {string[]} out
  * @param {string[]} entryPoints
  */
 function sectionEntryPoints(out, entryPoints) {
@@ -308,7 +329,7 @@ function sectionScanInfo(out) {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, entryPoints, flatFiles } = result;
+  const { rootPath, entryPoints, configs = [], flatFiles } = result;
 
   const cwd     = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -320,6 +341,7 @@ export function render(result, options = {}) {
   sectionTitle(out);
   sectionSummary(out, result, relRoot);
   sectionEntryPoints(out, entryPoints);
+  sectionConfigurationFiles(out, configs);
   sectionFolderStructure(out, flatFiles, rootName);
   sectionStatistics(out, result);
   sectionScanInfo(out);

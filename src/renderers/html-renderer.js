@@ -749,6 +749,40 @@ function renderEntryPoints(entryPoints) {
 }
 
 /**
+ * Render the configuration files section.
+ *
+ * @param {string[]} configs
+ * @returns {string}
+ */
+function renderConfigurationFiles(configs) {
+  const count = configs.length;
+
+  const body = count === 0
+    ? `<p class="empty-msg">No configuration files detected.</p>`
+    : `<ul class="entry-list">
+        ${configs.map(c => `
+          <li class="entry-item">
+            <span class="entry-dot"></span>
+            ${esc(c)}
+          </li>`).join('')}
+       </ul>`;
+
+  const countBadge = count > 0
+    ? `<span class="section-count">${count} found</span>`
+    : '';
+
+  return `
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.file()}</div>
+      <span class="section-title">Configuration Files</span>
+      ${countBadge}
+    </div>
+    <div class="section-body">${body}</div>
+  </div>`;
+}
+
+/**
  * Render the folder structure section with a dark <pre><code> tree.
  *
  * @param {string[]} flatFiles
@@ -873,7 +907,7 @@ function renderFooter() {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, projectType, entryPoints, flatFiles } = result;
+  const { rootPath, projectType, entryPoints, configs = [], flatFiles } = result;
 
   const cwd      = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -898,6 +932,7 @@ export function render(result, options = {}) {
     <main>
       ${renderSummaryCards(result)}
       ${renderEntryPoints(entryPoints)}
+      ${renderConfigurationFiles(configs)}
       ${renderFolderStructure(flatFiles, rootName)}
       ${renderStats(result)}
       ${renderScanInfo()}
