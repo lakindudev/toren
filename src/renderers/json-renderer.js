@@ -26,6 +26,7 @@ export function render(result, options = {}) {
     rootPath,
     projectType,
     entryPoints,
+    configs = [],
     tree,
     flatFiles,
     totalFolders,
@@ -47,6 +48,7 @@ export function render(result, options = {}) {
       scanDurationMs: Math.round(scanDurationMs),
     },
     entryPoints,
+    configs,
     structure: (tree.children || []).map(mapTree)
   };
 
