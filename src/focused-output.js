@@ -84,7 +84,11 @@ export function renderFocusedMode(mode, result) {
       if (!result.scripts || result.scripts.length === 0) {
         console.log('No scripts found');
       } else {
-        result.scripts.forEach(s => console.log(s.name));
+        const maxNameLen = Math.max(...result.scripts.map(s => s.name.length));
+        result.scripts.forEach(s => {
+          const paddedName = s.name.padEnd(maxNameLen + 6, ' ');
+          console.log(`${paddedName}${s.command}`);
+        });
       }
       break;
   }
