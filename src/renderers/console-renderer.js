@@ -173,6 +173,7 @@ export function render(result, options = {}) {
     rootPath,
     projectType,
     entryPoints,
+    configs = [],
     tree,
     flatFiles,
     totalFolders,
@@ -201,6 +202,16 @@ export function render(result, options = {}) {
   } else {
     for (const ep of entryPoints) {
       console.log(`  ${paint('→', C.cyan)}  ${paint(ep, C.white)}`);
+    }
+  }
+
+  // ── Configuration Files ───────────────────────────────────────────────────
+  section('⚙️', 'Configuration Files');
+  if (configs.length === 0) {
+    console.log(paint('  No configuration files detected', C.dim));
+  } else {
+    for (const c of configs) {
+      console.log(`  ${paint(c, C.white)}`);
     }
   }
 

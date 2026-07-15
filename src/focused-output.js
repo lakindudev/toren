@@ -71,9 +71,10 @@ export function renderFocusedMode(mode, result) {
       break;
       
     case '--configs':
-      console.log('Configuration Files\n');
+      console.log('Configuration Files');
+      console.log('───────────────────\n');
       if (!result.configs || result.configs.length === 0) {
-        console.log('No configuration files found');
+        console.log('No configuration files detected.');
       } else {
         result.configs.forEach(c => console.log(`✓ ${c}`));
       }
