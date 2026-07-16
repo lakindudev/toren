@@ -138,7 +138,7 @@ The default `console` format renders a beautiful summary directly in your termin
 ```text
   Toren v1.0.4  —  Codebase Onboarding Intelligence
 
-🔍  Project Summary
+ Project Summary
 ────────────────────────────────────────────────────────────────────────────────
   Path:          ./my-react-app
   Project type:  React
@@ -146,11 +146,11 @@ The default `console` format renders a beautiful summary directly in your termin
   Total folders: 6
   Scan duration: 4 ms
 
-🚪  Entry Points
+ Entry Points
 ────────────────────────────────────────────────────────────────────────────────
   →  src/main.tsx
 
-📁  Folder Structure  (first 20 files)
+ Folder Structure  (first 20 files)
 ────────────────────────────────────────────────────────────────────────────────
 my-react-app/
 ├── public/
@@ -168,7 +168,7 @@ my-react-app/
   … and 21 more file(s) not shown
 
 ────────────────────────────────────────────────────────────────────────────────
-  ✅  Scan complete.
+  Scan complete.
 ```
 
 ### JSON Output Example
@@ -253,12 +253,12 @@ Contributions to improve this codebase analyzer CLI are always welcome!
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 Built with by **[Lakindu Perera](https://github.com/lakindudev)**.
