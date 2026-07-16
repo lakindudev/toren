@@ -27,6 +27,7 @@ export function render(result, options = {}) {
     projectType,
     entryPoints,
     configs = [],
+    scripts = [],
     tree,
     flatFiles,
     totalFolders,
@@ -49,6 +50,7 @@ export function render(result, options = {}) {
     },
     entryPoints,
     configs,
+    scripts,
     structure: (tree.children || []).map(mapTree)
   };
 

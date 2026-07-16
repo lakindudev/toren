@@ -625,6 +625,7 @@ const icon = {
   tree:    () => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
   bar:     () => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
   info:    () => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  terminal: () => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
 };
 
 // ---------------------------------------------------------------------------
@@ -783,6 +784,48 @@ function renderConfigurationFiles(configs) {
 }
 
 /**
+ * Render the package scripts section.
+ *
+ * @param {Array<{name: string, command: string}>} scripts
+ * @returns {string}
+ */
+function renderPackageScripts(scripts) {
+  const count = scripts.length;
+
+  const body = count === 0
+    ? `<p class="empty-msg" style="padding: 1.5rem">No package scripts detected.</p>`
+    : `<table class="data-table">
+        <thead>
+          <tr>
+            <th>Script</th>
+            <th>Command</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${scripts.map(s => `
+            <tr>
+              <td><code>${esc(s.name)}</code></td>
+              <td class="val-plain"><code>${esc(s.command)}</code></td>
+            </tr>`).join('')}
+        </tbody>
+       </table>`;
+
+  const countBadge = count > 0
+    ? `<span class="section-count">${count} found</span>`
+    : '';
+
+  return `
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.terminal()}</div>
+      <span class="section-title">Package Scripts</span>
+      ${countBadge}
+    </div>
+    <div class="section-body" style="padding:0">${body}</div>
+  </div>`;
+}
+
+/**
  * Render the folder structure section with a dark <pre><code> tree.
  *
  * @param {string[]} flatFiles
@@ -907,7 +950,7 @@ function renderFooter() {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, projectType, entryPoints, configs = [], flatFiles } = result;
+  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles } = result;
 
   const cwd      = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -933,6 +976,7 @@ export function render(result, options = {}) {
       ${renderSummaryCards(result)}
       ${renderEntryPoints(entryPoints)}
       ${renderConfigurationFiles(configs)}
+      ${renderPackageScripts(scripts)}
       ${renderFolderStructure(flatFiles, rootName)}
       ${renderStats(result)}
       ${renderScanInfo()}

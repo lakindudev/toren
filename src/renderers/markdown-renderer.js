@@ -241,6 +241,29 @@ function sectionConfigurationFiles(out, configs) {
 
 /**
  * @param {string[]} out
+ * @param {Array<{name: string, command: string}>} scripts
+ */
+function sectionPackageScripts(out, scripts) {
+  out.push('');
+  out.push('## Package Scripts');
+  out.push('');
+
+  if (scripts.length === 0) {
+    out.push('No package scripts detected.');
+  } else {
+    out.push('| Script | Command |');
+    out.push('|--------|---------|');
+    for (const s of scripts) {
+      out.push(`| \`${s.name}\` | \`${s.command}\` |`);
+    }
+  }
+
+  out.push('');
+  out.push('---');
+}
+
+/**
+ * @param {string[]} out
  * @param {string[]} entryPoints
  */
 function sectionEntryPoints(out, entryPoints) {
@@ -329,7 +352,7 @@ function sectionScanInfo(out) {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, entryPoints, configs = [], flatFiles } = result;
+  const { rootPath, entryPoints, configs = [], scripts = [], flatFiles } = result;
 
   const cwd     = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -342,6 +365,7 @@ export function render(result, options = {}) {
   sectionSummary(out, result, relRoot);
   sectionEntryPoints(out, entryPoints);
   sectionConfigurationFiles(out, configs);
+  sectionPackageScripts(out, scripts);
   sectionFolderStructure(out, flatFiles, rootName);
   sectionStatistics(out, result);
   sectionScanInfo(out);

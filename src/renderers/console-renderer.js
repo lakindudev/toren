@@ -174,6 +174,7 @@ export function render(result, options = {}) {
     projectType,
     entryPoints,
     configs = [],
+    scripts = [],
     tree,
     flatFiles,
     totalFolders,
@@ -212,6 +213,18 @@ export function render(result, options = {}) {
   } else {
     for (const c of configs) {
       console.log(`  ${paint(c, C.white)}`);
+    }
+  }
+
+  // ── Package Scripts ───────────────────────────────────────────────────────
+  section('📜', 'Package Scripts');
+  if (scripts.length === 0) {
+    console.log(paint('  No package scripts detected', C.dim));
+  } else {
+    const maxNameLen = Math.max(...scripts.map(s => s.name.length));
+    for (const s of scripts) {
+      const paddedName = s.name.padEnd(maxNameLen, ' ');
+      console.log(`  ${paint(paddedName, C.white)}  ${paint(s.command, C.dim)}`);
     }
   }
 
