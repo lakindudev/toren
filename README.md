@@ -67,6 +67,8 @@ toren --project-type
 toren --frameworks
 toren --entry-points
 toren --structure
+toren --configs
+toren --scripts
 
 # Lifecycle & Help Commands
 toren --help
@@ -84,6 +86,8 @@ toren --uninstall
 | `--frameworks` | Show detected frameworks only. |
 | `--entry-points` | Show detected entry points only. |
 | `--structure` | Show repository structure only. |
+| `--configs` | Show detected project configuration files. |
+| `--scripts` | Show available package scripts only. |
 | `--format <type>` | Output format: `console` (default), `json`, `markdown`, `html`. |
 | `--include-hidden` | Include hidden files and dot-directories in the scan. |
 | `--max-files <N>` | Override the default 50,000-file scan limit. |
@@ -93,7 +97,7 @@ toren --uninstall
 | `--uninstall` | Safely remove Toren from the global npm environment. |
 
 > **Note:** `--format md` is not a valid alias. Use `--format markdown` in full.
-> **Note:** Focused output flags (`--project-type`, `--frameworks`, `--entry-points`, `--structure`) are mutually exclusive.
+> **Note:** Focused output flags (`--project-type`, `--frameworks`, `--entry-points`, `--structure`, `--configs`, `--scripts`) are mutually exclusive.
 
 ---
 
@@ -113,6 +117,19 @@ Frameworks:
 $ toren --entry-points
 Entry Points:
 - src/main.tsx
+
+$ toren --configs
+Configuration Files
+───────────────────
+
+✓ package.json
+✓ vite.config.ts
+
+$ toren --scripts
+Available Scripts
+
+start      node bin/toren.js
+test       node --test
 ```
 
 ### Console Output Example
