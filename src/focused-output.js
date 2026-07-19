@@ -38,6 +38,17 @@ export function getFocusedModeInfo(args) {
   };
 }
 
+function section(title, items, emptyMsg) {
+  console.log(`\x1b[1m\x1b[97m${title}\x1b[0m`);
+  console.log(`\x1b[2m${'─'.repeat(title.length)}\x1b[0m\n`);
+  
+  if (!items || items.length === 0) {
+    console.log(`\x1b[2m${emptyMsg}\x1b[0m`);
+  } else {
+    items.forEach(item => console.log(item));
+  }
+}
+
 /**
  * Renders the scan result based on the active focused mode.
  * 
@@ -47,25 +58,16 @@ export function getFocusedModeInfo(args) {
 export function renderFocusedMode(mode, result) {
   switch (mode) {
     case '--project-type':
-      console.log(`Project Type: ${result.projectType}`);
+      section('Project Type', [result.projectType], 'Unknown');
       break;
       
     case '--frameworks':
-      if (!result.projectType || result.projectType === 'Unknown') {
-        console.log('Frameworks: None detected');
-      } else {
-        console.log('Frameworks:');
-        console.log(`- ${result.projectType}`);
-      }
+      const frameworks = (!result.projectType || result.projectType === 'Unknown') ? [] : [result.projectType];
+      section('Frameworks', frameworks, 'None detected');
       break;
       
     case '--entry-points':
-      if (!result.entryPoints || result.entryPoints.length === 0) {
-        console.log('Entry Points: None detected');
-      } else {
-        console.log('Entry Points:');
-        result.entryPoints.forEach(ep => console.log(`- ${ep}`));
-      }
+      section('Entry Points', result.entryPoints || [], 'No entry points detected');
       break;
       
     case '--structure':
@@ -73,26 +75,19 @@ export function renderFocusedMode(mode, result) {
       break;
       
     case '--configs':
-      console.log('Configuration Files');
-      console.log('───────────────────\n');
-      if (!result.configs || result.configs.length === 0) {
-        console.log('No configuration files detected.');
-      } else {
-        result.configs.forEach(c => console.log(`✓ ${c}`));
-      }
+      section('Configuration Files', result.configs || [], 'No configuration files detected');
       break;
 
     case '--scripts':
-      console.log('Available Scripts\n');
-      if (!result.scripts || result.scripts.length === 0) {
-        console.log('No scripts found');
-      } else {
+      const scriptsList = [];
+      if (result.scripts && result.scripts.length > 0) {
         const maxNameLen = Math.max(...result.scripts.map(s => s.name.length));
         result.scripts.forEach(s => {
-          const paddedName = s.name.padEnd(maxNameLen + 6, ' ');
-          console.log(`${paddedName}${s.command}`);
+          const paddedName = s.name.padEnd(maxNameLen, ' ');
+          scriptsList.push(`${paddedName}  \x1b[2m${s.command}\x1b[0m`);
         });
       }
+      section('Package Scripts', scriptsList, 'No package scripts detected');
       break;
   }
 }
