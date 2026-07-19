@@ -128,11 +128,6 @@ function renderTree(node, prefix, isLast, counter, limit = PREVIEW_LIMIT, depth 
   }
 }
 
-function formatDuration(ms) {
-  if (ms < 1) return '< 1 ms';
-  if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
-  return `${Math.round(ms)} ms`;
-}
 
 // ---------------------------------------------------------------------------
 // Banner  (private)
@@ -184,7 +179,6 @@ export function render(result, options = {}) {
   row('Project type: ', paint(projectType, C.bold, C.green));
   row('Total files:  ', paint(String(flatFiles.length), C.yellow));
   row('Total folders:', paint(String(totalFolders), C.yellow));
-  row('Scan duration:', paint(formatDuration(scanDurationMs), C.magenta));
   console.log('');
 
   // ── Entry Points ──────────────────────────────────────────────────────────
@@ -245,7 +239,7 @@ export function render(result, options = {}) {
 
   // ── Footer ────────────────────────────────────────────────────────────────
   console.log('');
-  console.log(paint('Scan complete.', C.green));
+  console.log(paint(`Scan completed in ${Math.round(scanDurationMs)} ms`, C.green));
   console.log('');
 }
 
