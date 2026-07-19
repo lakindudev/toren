@@ -114,7 +114,7 @@ function parseArgs() {
   }
 
   if (args.includes('--version') || args.includes('-V') || args.includes('-v')) {
-    console.log(pkg.version);
+    console.log(`Toren ${pkg.version}`);
     return { action: 'exit', code: 0 };
   }
 
