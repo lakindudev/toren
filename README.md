@@ -77,10 +77,10 @@ toren --doctor
 toren --uninstall
 ```
 
-### All Flags
+### CLI Reference
 
-| Flag | Description |
-|------|-------------|
+| Command / Flag | Description |
+|----------------|-------------|
 | `[path]` | Directory to scan. Defaults to the current directory (`.`). |
 | `--project-type` | Show detected project type only. |
 | `--frameworks` | Show detected frameworks only. |
@@ -90,9 +90,9 @@ toren --uninstall
 | `--scripts` | Show available package scripts only. |
 | `--format <type>` | Output format: `console` (default), `json`, `markdown`, `html`. |
 | `--include-hidden` | Include hidden files and dot-directories in the scan. |
-| `--max-files <N>` | Override the default 50,000-file scan limit. |
-| `--help` / `-h` | Show usage information. |
-| `--version` / `-V` | Print the installed version number. |
+| `--max-files <n>` | Override the default 50,000-file scan limit. |
+| `--help`, `-h` | Show usage and help message. |
+| `--version`, `-v` | Print the installed version number. |
 | `--doctor` | Diagnose the global installation health. |
 | `--uninstall` | Safely remove Toren from the global npm environment. |
 
@@ -101,57 +101,30 @@ toren --uninstall
 
 ---
 
-## Output Examples
-
-### Focused Output Example
-Sometimes you only need a specific piece of intelligence for use in a script or a quick lookup. Use the focused output flags to bypass the full report:
-
-```bash
-$ toren --project-type
-Project Type: Node.js / JavaScript
-
-$ toren --frameworks
-Frameworks:
-- React
-
-$ toren --entry-points
-Entry Points:
-- src/main.tsx
-
-$ toren --configs
-Configuration Files
-───────────────────
-
-✓ package.json
-✓ vite.config.ts
-
-$ toren --scripts
-Available Scripts
-
-start      node bin/toren.js
-test       node --test
-```
+## Screenshots & Output Examples
 
 ### Console Output Example
 The default `console` format renders a beautiful summary directly in your terminal:
 
 ```text
-  Toren v1.0.4  —  Codebase Onboarding Intelligence
+Toren v1.0.6  —  Codebase Onboarding Intelligence
 
- Project Summary
-────────────────────────────────────────────────────────────────────────────────
-  Path:          ./my-react-app
-  Project type:  React
-  Total files:   32
-  Total folders: 6
-  Scan duration: 4 ms
+Project Summary
+───────────────
 
- Entry Points
-────────────────────────────────────────────────────────────────────────────────
-  →  src/main.tsx
+Path:          ./my-react-app
+Project type:  React
+Total files:   32
+Total folders: 6
 
- Folder Structure  (first 20 files)
-────────────────────────────────────────────────────────────────────────────────
+Entry Points
+────────────
+
+src/main.tsx
+
+Folder Structure  (first 20 files)
+──────────────────────────────────
+
 my-react-app/
 ├── public/
 │   └── vite.svg
@@ -165,10 +138,46 @@ my-react-app/
 ├── index.html
 ├── package.json
 └── vite.config.ts
-  … and 21 more file(s) not shown
+… and 21 more file(s) not shown
 
-────────────────────────────────────────────────────────────────────────────────
-  Scan complete.
+Scan completed in 4 ms
+```
+
+### Focused Output Examples
+Sometimes you only need a specific piece of intelligence for use in a script or a quick lookup. Use the focused output flags to bypass the full report:
+
+```bash
+$ toren --project-type
+Project Type
+────────────
+
+Node.js / JavaScript
+
+$ toren --frameworks
+Frameworks
+──────────
+
+React
+
+$ toren --entry-points
+Entry Points
+────────────
+
+src/main.tsx
+
+$ toren --configs
+Configuration Files
+───────────────────
+
+package.json
+vite.config.ts
+
+$ toren --scripts
+Package Scripts
+───────────────
+
+start  vite
+test   vitest
 ```
 
 ### JSON Output Example
@@ -204,6 +213,17 @@ Generate machine-readable output for scripts, toolchains, or AI context windows 
 ```
 
 *Note: You can also generate rich, GitHub-flavored Markdown (`--format markdown`) or self-contained HTML reports (`--format html`) for documentation purposes!*
+
+---
+
+## Release Notes
+
+### v1.0.6 - CLI Experience Update
+- **Redesigned CLI Output**: Completely revamped the console layout to use minimal typography, bold section titles, and dynamic divider lines matching the title width.
+- **Improved Error Handling**: Transformed raw exceptions into user-friendly error messages outlining the issue and potential fixes, ensuring consistent exit codes.
+- **Enhanced Focused Modes**: Focused output flags (`--configs`, `--entry-points`, `--structure`, etc.) now strictly mirror the design tokens of the full console renderer, providing identical spacing and layouts.
+- **Streamlined Help & Version**: The `--help` interface was fully redesigned for faster reading, and `-v` / `--version` flags were added to output the exact binary version directly from `package.json`.
+- **Accurate Timing Metrics**: Scan duration logic was improved to utilize native timing APIs, precisely measuring execution and printing results natively as "Scan completed in X ms" without clogging the project summary.
 
 ---
 

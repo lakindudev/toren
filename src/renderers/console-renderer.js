@@ -57,23 +57,14 @@ function paint(text, ...codes) {
 }
 
 /**
- * Print a full-width horizontal rule (≤ 80 chars).
- * @param {string} [char='─']
- */
-function divider(char = '─') {
-  const width = Math.min(process.stdout.columns ?? 72, 80);
-  console.log(paint(char.repeat(width), C.dim));
-}
-
-/**
- * Print a titled section header followed by a divider.
- * @param {string} emoji
+ * Print a titled section header followed by a matched-length divider.
  * @param {string} title
  */
-function section(emoji, title) {
+function section(title) {
+  const cleanTitle = title.replace(/\x1b\[[0-9;]*m/g, '');
+  console.log(paint(title, C.bold, C.white));
+  console.log(paint('─'.repeat(cleanTitle.length), C.dim));
   console.log('');
-  console.log(`${emoji}  ${paint(title, C.bold, C.white)}`);
-  divider();
 }
 
 /**
@@ -84,7 +75,7 @@ function section(emoji, title) {
  */
 function row(label, value, ...valueCodes) {
   const coloured = valueCodes.length ? paint(value, ...valueCodes) : value;
-  console.log(`  ${paint(label, C.dim)}  ${coloured}`);
+  console.log(`${paint(label, C.dim)} ${coloured}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -137,11 +128,6 @@ function renderTree(node, prefix, isLast, counter, limit = PREVIEW_LIMIT, depth 
   }
 }
 
-function formatDuration(ms) {
-  if (ms < 1) return '< 1 ms';
-  if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
-  return `${Math.round(ms)} ms`;
-}
 
 // ---------------------------------------------------------------------------
 // Banner  (private)
@@ -151,8 +137,7 @@ function printBanner() {
   const name    = paint('Toren', C.bold, C.cyan);
   const version = paint(`v${pkg.version}`, C.dim);
   const tagline = paint('Codebase Onboarding Intelligence', C.dim);
-  console.log('');
-  console.log(`  ${name} ${version}  —  ${tagline}`);
+  console.log(`${name} ${version}  —  ${tagline}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -189,47 +174,50 @@ export function render(result, options = {}) {
   console.log('');
 
   // ── Summary ───────────────────────────────────────────────────────────────
-  section('🔍', 'Project Summary');
+  section('Project Summary');
   row('Path:         ', paint(relRoot, C.cyan));
   row('Project type: ', paint(projectType, C.bold, C.green));
   row('Total files:  ', paint(String(flatFiles.length), C.yellow));
   row('Total folders:', paint(String(totalFolders), C.yellow));
-  row('Scan duration:', paint(formatDuration(scanDurationMs), C.magenta));
+  console.log('');
 
   // ── Entry Points ──────────────────────────────────────────────────────────
-  section('🚪', 'Entry Points');
+  section('Entry Points');
   if (entryPoints.length === 0) {
-    console.log(paint('  ⚠ No entry points detected (this may be a library or utility project)', C.yellow));
+    console.log(paint('No entry points detected', C.dim));
   } else {
     for (const ep of entryPoints) {
-      console.log(`  ${paint('→', C.cyan)}  ${paint(ep, C.white)}`);
+      console.log(paint(ep, C.white));
     }
   }
+  console.log('');
 
   // ── Configuration Files ───────────────────────────────────────────────────
-  section('⚙️', 'Configuration Files');
+  section('Configuration Files');
   if (configs.length === 0) {
-    console.log(paint('  No configuration files detected', C.dim));
+    console.log(paint('No configuration files detected', C.dim));
   } else {
     for (const c of configs) {
-      console.log(`  ${paint(c, C.white)}`);
+      console.log(paint(c, C.white));
     }
   }
+  console.log('');
 
   // ── Package Scripts ───────────────────────────────────────────────────────
-  section('📜', 'Package Scripts');
+  section('Package Scripts');
   if (scripts.length === 0) {
-    console.log(paint('  No package scripts detected', C.dim));
+    console.log(paint('No package scripts detected', C.dim));
   } else {
     const maxNameLen = Math.max(...scripts.map(s => s.name.length));
     for (const s of scripts) {
       const paddedName = s.name.padEnd(maxNameLen, ' ');
-      console.log(`  ${paint(paddedName, C.white)}  ${paint(s.command, C.dim)}`);
+      console.log(`${paint(paddedName, C.white)}  ${paint(s.command, C.dim)}`);
     }
   }
+  console.log('');
 
   // ── Structure Preview ─────────────────────────────────────────────────────
-  section('📁', `Folder Structure  ${paint(`(first ${PREVIEW_LIMIT} files)`, C.dim)}`);
+  section(`Folder Structure  ${paint(`(first ${PREVIEW_LIMIT} files)`, C.dim)}`);
 
   console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
 
@@ -246,13 +234,12 @@ export function render(result, options = {}) {
 
   if (flatFiles.length > PREVIEW_LIMIT) {
     const hidden = flatFiles.length - PREVIEW_LIMIT;
-    console.log(paint(`  … and ${hidden} more file(s) not shown`, C.dim));
+    console.log(paint(`… and ${hidden} more file(s) not shown`, C.dim));
   }
 
   // ── Footer ────────────────────────────────────────────────────────────────
   console.log('');
-  divider();
-  console.log(paint('  ✅  Scan complete.', C.green));
+  console.log(paint(`Scan completed in ${Math.round(scanDurationMs)} ms`, C.green));
   console.log('');
 }
 
@@ -264,7 +251,7 @@ export function render(result, options = {}) {
 export function renderStructure(result) {
   const { tree, flatFiles } = result;
 
-  console.log(paint('Project Structure:', C.bold, C.white));
+  section('Project Structure');
   console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
 
   const counter  = { count: 0, maxReached: false };

@@ -1,6 +1,6 @@
 {
   "name": "@lakindu_perera/toren",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A powerful codebase scanner CLI tool for project analysis, framework detection, and understanding repository structure instantly.",
   "type": "module",
   "bin": {

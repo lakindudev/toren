@@ -38,8 +38,17 @@ const DEFAULT_FORMAT = 'console';
 const SUPPORTED_FORMATS = Object.keys(renderers);
 
 // ---------------------------------------------------------------------------
-// Help
+// Helpers
 // ---------------------------------------------------------------------------
+
+function printError(title, message, detailLabel, detailValue) {
+  console.error(`\x1b[31m✖ ${title}\x1b[0m\n`);
+  console.error(`${message}\n`);
+  if (detailLabel && detailValue) {
+    console.error(`${detailLabel}:\n`);
+    console.error(`${detailValue}\n`);
+  }
+}
 
 function printHelp() {
   const formatList = SUPPORTED_FORMATS.map(f => {
@@ -114,7 +123,7 @@ function parseArgs() {
   }
 
   if (args.includes('--version') || args.includes('-V') || args.includes('-v')) {
-    console.log(pkg.version);
+    console.log(`Toren ${pkg.version}`);
     return { action: 'exit', code: 0 };
   }
 
@@ -139,13 +148,12 @@ function parseArgs() {
     const nextToken = args[formatIdx + 1];
     // If the next token is missing or starts with '-', the user omitted the value.
     if (nextToken === undefined || nextToken.startsWith('-')) {
-      console.error('');
-      console.error('\x1b[31m  --format requires a value.\x1b[0m');
-      console.error('');
-      console.error(`  Supported formats: ${SUPPORTED_FORMATS.join(', ')}`);
-      console.error('');
-      console.error('  Run \x1b[36mtoren --help\x1b[0m for usage.');
-      console.error('');
+      printError(
+        'Missing value',
+        'The --format flag requires a valid output format.',
+        'Supported formats',
+        SUPPORTED_FORMATS.join(', ')
+      );
       return { action: 'exit', code: 1 };
     }
     format = nextToken;
@@ -157,7 +165,7 @@ function parseArgs() {
   const focusedInfo = getFocusedModeInfo(args);
   
   if (focusedInfo.error) {
-    console.error(focusedInfo.message);
+    printError(focusedInfo.title, focusedInfo.message, focusedInfo.detailLabel, focusedInfo.detailValue);
     return { action: 'exit', code: 1 };
   }
 
@@ -180,17 +188,22 @@ function parseArgs() {
   if (maxFilesIdx !== -1) {
     const rawVal = args[maxFilesIdx + 1];
     if (rawVal === undefined || rawVal.startsWith('-')) {
-      console.error('');
-      console.error('\x1b[31m  --max-files requires a numeric value.\x1b[0m');
-      console.error('  Example: toren --max-files 100000');
-      console.error('');
+      printError(
+        'Missing value',
+        'The --max-files flag requires a numeric value.',
+        'Example',
+        'toren --max-files 100000'
+      );
       return { action: 'exit', code: 1 };
     }
     maxFiles = parseInt(rawVal, 10);
     if (isNaN(maxFiles) || maxFiles < 1) {
-      console.error('');
-      console.error(`\x1b[31m  --max-files must be a positive integer, got: ${rawVal}\x1b[0m`);
-      console.error('');
+      printError(
+        'Invalid value',
+        'The --max-files flag must be a positive integer.',
+        'Provided value',
+        rawVal
+      );
       return { action: 'exit', code: 1 };
     }
     consumedValues.add(rawVal);
@@ -217,8 +230,12 @@ function parseArgs() {
   );
 
   if (unknownFlag) {
-    console.error(`\x1b[31m  Unknown flag: ${unknownFlag}\x1b[0m`);
-    console.error(`  Run \x1b[36mtoren --help\x1b[0m for usage.\n`);
+    printError(
+      'Unknown option',
+      'An unrecognized flag was provided.',
+      'Flag',
+      unknownFlag
+    );
     return { action: 'exit', code: 1 };
   }
 
@@ -238,16 +255,12 @@ function parseArgs() {
 function assertValidFormat(format) {
   if (renderers[format]) return;
 
-  const list = SUPPORTED_FORMATS.map(f => `  • ${f}`).join('\n');
-  console.error('');
-  console.error(`\x1b[31m  Unknown output format: ${format}\x1b[0m`);
-  console.error('');
-  console.error('  Supported formats:');
-  console.error('');
-  console.error(list);
-  console.error('');
-  console.error('  Run \x1b[36mtoren --help\x1b[0m for usage.');
-  console.error('');
+  printError(
+    'Unsupported output format',
+    'The requested output format is not supported.',
+    'Format',
+    format
+  );
   process.exit(1);
 }
 
@@ -284,9 +297,11 @@ function assertValidFormat(format) {
     if (parsed.format === 'json') {
       console.error(JSON.stringify({ error: err.message }, null, 2));
     } else {
-      console.error('');
-      console.error(`\x1b[31m  ❌  Error: ${err.message}\x1b[0m`);
-      console.error('');
+      if (err.title) {
+        printError(err.title, err.message, err.detailLabel, err.detailValue);
+      } else {
+        printError('Scan failed', err.message);
+      }
     }
     process.exit(1);
   }
