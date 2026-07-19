@@ -25,8 +25,10 @@ export function getFocusedModeInfo(args) {
   if (activeFlags.length > 1) {
     return {
       error: true,
-      message: '\x1b[31mError: focused output flags are mutually exclusive. Please use only one of:\x1b[0m\n' + 
-               FOCUSED_FLAGS.map(f => `  ${f}`).join('\n') + '\n'
+      title: 'Conflicting options',
+      message: 'Focused output flags are mutually exclusive.',
+      detailLabel: 'Provided flags',
+      detailValue: activeFlags.join(', ')
     };
   }
 

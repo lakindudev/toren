@@ -186,7 +186,11 @@ function walkDirectory(dirPath, rootPath, flatFiles, includeHidden, maxFiles) {
       node.children.push(childNode);
     } else if (dirent.isFile()) {
       if (flatFiles.length >= maxFiles) {
-        throw new Error(`Max file scan limit exceeded (${maxFiles} files). Use --max-files <number> to increase the limit.`);
+        const err = new Error(`Max file scan limit exceeded (${maxFiles} files).`);
+        err.title = 'Scan limit exceeded';
+        err.detailLabel = 'Hint';
+        err.detailValue = 'Use --max-files <number> to increase the limit.';
+        throw err;
       }
       const relFilePath = toPosix(path.relative(rootPath, childPath));
 
@@ -449,8 +453,18 @@ export function scan(targetPath, options = {}) {
   let stat;
   try {
     stat = fs.statSync(rootPath);
-  } catch {
-    throw new Error(`Path does not exist: ${rootPath}`);
+  } catch (err) {
+    const error = new Error(`Path does not exist: ${rootPath}`);
+    if (err.code === 'EACCES' || err.code === 'EPERM') {
+      error.title = 'Permission denied';
+      error.message = 'You do not have permission to access the specified path.';
+    } else {
+      error.title = 'Invalid directory';
+      error.message = 'The specified path does not exist.';
+    }
+    error.detailLabel = 'Path';
+    error.detailValue = rootPath;
+    throw error;
   }
 
   /** @type {Array<string>} */
@@ -494,7 +508,12 @@ export function scan(targetPath, options = {}) {
     configs = detectConfigs(flatFiles).configs;
     scripts = detectScripts(path.dirname(rootPath)).scripts;
   } else {
-    throw new Error(`Path is neither a file nor a directory: ${rootPath}`);
+    const err = new Error(`Path is neither a file nor a directory: ${rootPath}`);
+    err.title = 'Unsupported path type';
+    err.message = 'The specified path is neither a file nor a directory.';
+    err.detailLabel = 'Path';
+    err.detailValue = rootPath;
+    throw err;
   }
 
   const scanDurationMs = performance.now() - startTime;
