@@ -251,7 +251,6 @@ export function render(result, options = {}) {
 export function renderStructure(result) {
   const { tree, flatFiles } = result;
 
-  console.log('');
   section('Project Structure');
   console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
 
