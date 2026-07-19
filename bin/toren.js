@@ -42,39 +42,43 @@ const SUPPORTED_FORMATS = Object.keys(renderers);
 // ---------------------------------------------------------------------------
 
 function printHelp() {
-  const formatList = SUPPORTED_FORMATS.map(f => `      ${f}`).join('\n');
+  const formatList = SUPPORTED_FORMATS.map(f => {
+    const suffix = f === DEFAULT_FORMAT ? '  (default)' : '';
+    return `  --format ${f.padEnd(10)}${suffix}`;
+  }).join('\n');
+
   console.log(`
-\x1b[1mUsage:\x1b[0m
+\x1b[1mToren\x1b[0m v${pkg.version}
+Fast Repository Discovery CLI
+
+\x1b[1mUSAGE\x1b[0m
   toren [path] [options]
 
-\x1b[1mOptions:\x1b[0m
+\x1b[1mCOMMANDS\x1b[0m
   --project-type      Show detected project type only
   --frameworks        Show detected frameworks only
   --entry-points      Show detected entry points only
   --structure         Show repository structure only
   --configs           Show detected project configuration files
   --scripts           Show available package scripts only
-  --format <type>     Output as console, json, markdown, or html
   --include-hidden    Include hidden files and folders
   --max-files <n>     Set scan file limit
-  --help              Show this help message
-  --version           Show version number
   --doctor            Run CLI diagnostics
   --uninstall         Remove Toren global installation
+  --help              Show this help message
+  --version           Show version number
 
-\x1b[1mOutput Formats:\x1b[0m
+\x1b[1mOUTPUT FORMATS\x1b[0m
 ${formatList}
 
-    console is the default.
-
-\x1b[1mExamples:\x1b[0m
+\x1b[1mEXAMPLES\x1b[0m
   toren .                              Scan the current directory
   toren ./my-project                   Scan a specific project folder
   toren --format json .                Output results as JSON
   toren --format markdown . > out.md   Save a Markdown report to a file
   toren --format html . > out.html     Save an HTML report to a file
-  toren --include-hidden .             Include hidden dot-files in scan
-  toren --max-files 100000 .           Override the 50k file scan limit
+  toren . --configs                    Show project configuration files
+  toren . --frameworks                 Show detected frameworks
 `);
 }
 
