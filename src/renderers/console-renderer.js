@@ -78,6 +78,18 @@ function row(label, value, ...valueCodes) {
   console.log(`${paint(label, C.dim)} ${coloured}`);
 }
 
+/**
+ * Format a scan duration into a human-readable string.
+ * Mirrors the formatDuration helpers in markdown-renderer and html-renderer.
+ * @param {number} ms
+ * @returns {string}
+ */
+function formatDuration(ms) {
+  if (ms < 1)     return '< 1 ms';
+  if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
+  return `${Math.round(ms)} ms`;
+}
+
 // ---------------------------------------------------------------------------
 // File-tree renderer  (private)
 // ---------------------------------------------------------------------------
@@ -184,7 +196,7 @@ export function render(result, options = {}) {
   // ── Entry Points ──────────────────────────────────────────────────────────
   section('Entry Points');
   if (entryPoints.length === 0) {
-    console.log(paint('No entry points detected', C.dim));
+    console.log(paint('No entry points detected.', C.dim));
   } else {
     for (const ep of entryPoints) {
       console.log(paint(ep, C.white));
@@ -195,7 +207,7 @@ export function render(result, options = {}) {
   // ── Configuration Files ───────────────────────────────────────────────────
   section('Configuration Files');
   if (configs.length === 0) {
-    console.log(paint('No configuration files detected', C.dim));
+    console.log(paint('No configuration files detected.', C.dim));
   } else {
     for (const c of configs) {
       console.log(paint(c, C.white));
@@ -206,7 +218,7 @@ export function render(result, options = {}) {
   // ── Package Scripts ───────────────────────────────────────────────────────
   section('Package Scripts');
   if (scripts.length === 0) {
-    console.log(paint('No package scripts detected', C.dim));
+    console.log(paint('No package scripts detected.', C.dim));
   } else {
     const maxNameLen = Math.max(...scripts.map(s => s.name.length));
     for (const s of scripts) {
@@ -217,7 +229,7 @@ export function render(result, options = {}) {
   console.log('');
 
   // ── Structure Preview ─────────────────────────────────────────────────────
-  section(`Folder Structure  ${paint(`(first ${PREVIEW_LIMIT} files)`, C.dim)}`);
+  section('Folder Structure');
 
   console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
 
@@ -234,12 +246,12 @@ export function render(result, options = {}) {
 
   if (flatFiles.length > PREVIEW_LIMIT) {
     const hidden = flatFiles.length - PREVIEW_LIMIT;
-    console.log(paint(`… and ${hidden} more file(s) not shown`, C.dim));
+    console.log(paint(`… ${hidden} more file(s) not shown`, C.dim));
   }
 
   // ── Footer ────────────────────────────────────────────────────────────────
   console.log('');
-  console.log(paint(`Scan completed in ${Math.round(scanDurationMs)} ms`, C.green));
+  console.log(paint(`Scan completed in ${formatDuration(scanDurationMs)}`, C.green));
   console.log('');
 }
 
