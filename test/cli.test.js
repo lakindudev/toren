@@ -270,14 +270,14 @@ describe('Empty-State Rendering', () => {
   test('markdown: Configuration Files section present with empty-state message', () => {
     const res = runCLI(`${EMPTY_DIR} --format markdown`);
     assert.equal(res.status, 0);
-    assert.match(res.output, /## Configuration Files/);
+    assert.match(res.output, /## Configurations/);
     assert.match(res.output, /No configuration files detected\./);
   });
 
   test('markdown: Package Scripts section present with empty-state message', () => {
     const res = runCLI(`${EMPTY_DIR} --format markdown`);
     assert.equal(res.status, 0);
-    assert.match(res.output, /## Package Scripts/);
+    assert.match(res.output, /## Scripts/);
     assert.match(res.output, /No package scripts detected\./);
   });
 
