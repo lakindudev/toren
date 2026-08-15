@@ -166,6 +166,19 @@ function markdownTable(rows) {
 }
 
 /**
+ * Derive a frameworks array from the projectType string.
+ * Returns [] when no specific framework is detected.
+ * Mirrors the identical derivation in console-renderer.js and json-renderer.js.
+ *
+ * @param {string} projectType
+ * @returns {string[]}
+ */
+function deriveFrameworks(projectType) {
+  if (!projectType || projectType === 'Unknown') return [];
+  return [projectType];
+}
+
+/**
  * Build a right-aligned Markdown table (used for statistics).
  *
  * @param {[string, string|number][]} rows
@@ -214,6 +227,29 @@ function sectionSummary(out, result, relRoot) {
     ['Total Files',  String(flatFiles.length)],
     ['Total Folders', String(totalFolders)],
   ]));
+  out.push('');
+  out.push('---');
+}
+
+/**
+ * @param {string[]} out
+ * @param {string}   projectType
+ */
+function sectionFrameworks(out, projectType) {
+  const frameworks = deriveFrameworks(projectType);
+
+  out.push('');
+  out.push('## Frameworks');
+  out.push('');
+
+  if (frameworks.length === 0) {
+    out.push('No frameworks detected.');
+  } else {
+    for (const fw of frameworks) {
+      out.push(`- ${fw}`);
+    }
+  }
+
   out.push('');
   out.push('---');
 }
@@ -289,18 +325,17 @@ function sectionEntryPoints(out, entryPoints) {
  * @param {string}   rootName
  */
 function sectionFolderStructure(out, flatFiles, rootName) {
+  // Contract: omit section entirely when no files were scanned.
+  if (flatFiles.length === 0) return;
+
   out.push('');
   out.push('## Folder Structure');
   out.push('');
 
-  if (flatFiles.length === 0) {
-    out.push('No files scanned.');
-  } else {
-    const tree = buildTreeString(flatFiles, rootName);
-    out.push('```text');
-    out.push(tree);
-    out.push('```');
-  }
+  const tree = buildTreeString(flatFiles, rootName);
+  out.push('```text');
+  out.push(tree);
+  out.push('```');
 
   out.push('');
   out.push('---');
@@ -352,7 +387,7 @@ function sectionScanInfo(out) {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, entryPoints, configs = [], scripts = [], flatFiles } = result;
+  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles } = result;
 
   const cwd     = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -363,12 +398,12 @@ export function render(result, options = {}) {
 
   sectionTitle(out);
   sectionSummary(out, result, relRoot);
+  sectionFrameworks(out, projectType);
   sectionEntryPoints(out, entryPoints);
   sectionConfigurationFiles(out, configs);
   sectionPackageScripts(out, scripts);
   sectionFolderStructure(out, flatFiles, rootName);
   sectionStatistics(out, result);
-  sectionScanInfo(out);
 
   console.log(out.join('\n'));
 }

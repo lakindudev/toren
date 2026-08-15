@@ -148,12 +148,13 @@ function esc(value) {
 
 /**
  * Format a scan duration in milliseconds to a human-readable string.
+ * Returns plain text only — callers are responsible for HTML-escaping via esc().
  *
  * @param {number} ms
  * @returns {string}
  */
 function formatDuration(ms) {
-  if (ms < 1)     return '&lt; 1 ms';
+  if (ms < 1)     return '< 1 ms';
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
   return `${Math.round(ms)} ms`;
 }
@@ -633,6 +634,19 @@ const icon = {
 // ---------------------------------------------------------------------------
 
 /**
+ * Derive a frameworks array from the projectType string.
+ * Returns [] when no specific framework is detected.
+ * Mirrors the identical derivation in console-renderer.js and json-renderer.js.
+ *
+ * @param {string} projectType
+ * @returns {string[]}
+ */
+function deriveFrameworks(projectType) {
+  if (!projectType || projectType === 'Unknown') return [];
+  return [projectType];
+}
+
+/**
  * Render the gradient page header.
  *
  * @param {string} projectType
@@ -696,7 +710,7 @@ function renderSummaryCards(result) {
     {
       label: 'Scan Duration',
       icon:  icon.clock(),
-      value: formatDuration(scanDurationMs),
+      value: esc(formatDuration(scanDurationMs)),
       isText: true,
       sub:   'wall-clock time',
     },
@@ -713,6 +727,41 @@ function renderSummaryCards(result) {
     </div>`).join('');
 
   return `<div class="cards">${cardHTML}</div>`;
+}
+
+/**
+ * Render the frameworks section.
+ *
+ * @param {string} projectType
+ * @returns {string}
+ */
+function renderFrameworks(projectType) {
+  const frameworks = deriveFrameworks(projectType);
+  const count      = frameworks.length;
+
+  const body = count === 0
+    ? `<p class="empty-msg">No frameworks detected.</p>`
+    : `<ul class="entry-list">
+        ${frameworks.map(fw => `
+          <li class="entry-item">
+            <span class="entry-dot"></span>
+            ${esc(fw)}
+          </li>`).join('')}
+       </ul>`;
+
+  const countBadge = count > 0
+    ? `<span class="section-count">${count} found</span>`
+    : '';
+
+  return `
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.code()}</div>
+      <span class="section-title">Frameworks</span>
+      ${countBadge}
+    </div>
+    <div class="section-body">${body}</div>
+  </div>`;
 }
 
 /**
@@ -974,6 +1023,7 @@ export function render(result, options = {}) {
 
     <main>
       ${renderSummaryCards(result)}
+      ${renderFrameworks(projectType)}
       ${renderEntryPoints(entryPoints)}
       ${renderConfigurationFiles(configs)}
       ${renderPackageScripts(scripts)}
