@@ -31,34 +31,6 @@ import path from 'node:path';
 // Tree builder (plain-text, HTML-safe — same algorithm as markdown-renderer)
 // ---------------------------------------------------------------------------
 
-/**
- * Build an in-memory nested tree from a flat list of relative file paths.
- *
- * @param {string[]} flatFiles - Relative file paths produced by scan()
- * @returns {{ type: string, children: Record<string, object> }}
- */
-function buildInternalTree(flatFiles) {
-  const root = { type: 'directory', children: {} };
-
-  for (const filePath of flatFiles) {
-    const parts = filePath.split(/[/\\]/).filter(Boolean);
-    let node = root;
-
-    for (let i = 0; i < parts.length; i++) {
-      const part   = parts[i];
-      const isLeaf = i === parts.length - 1;
-
-      if (!node.children[part]) {
-        node.children[part] = isLeaf
-          ? { type: 'file', name: part }
-          : { type: 'directory', name: part, children: {} };
-      }
-      node = node.children[part];
-    }
-  }
-
-  return root;
-}
 
 /**
  * Recursively serialise a tree node into classic tree-connector lines.
@@ -80,10 +52,7 @@ function serializeNode(node, prefix, isLast, lines, depth = 0, maxDepth = 5) {
   lines.push(`${prefix}${connector}${label}`);
 
   if (node.type === 'directory') {
-    const children = Object.values(node.children || {}).sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
+    const children = node.children || [];
 
     if (depth === maxDepth - 1 && children.length > 0) {
       lines.push(`${prefix}${childPad}└── ...`);
@@ -104,21 +73,18 @@ function serializeNode(node, prefix, isLast, lines, depth = 0, maxDepth = 5) {
 }
 
 /**
- * Convert a flat file list into a plain-text tree string.
+ * Convert a ScanResult tree into a plain-text tree string.
  *
- * @param {string[]} flatFiles
+ * @param {import('../scanner/scan.js').DirNode} tree
  * @param {string}   rootName
+ * @param {number}   totalFiles
  * @returns {string}
  */
-function buildTreeString(flatFiles, rootName) {
-  if (flatFiles.length === 0) return 'No files scanned.';
+function buildTreeString(tree, rootName, totalFiles) {
+  if (totalFiles === 0) return 'No files scanned.';
 
-  const root     = buildInternalTree(flatFiles);
   const lines    = [`${rootName}/`];
-  const children = Object.values(root.children).sort((a, b) => {
-    if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
+  const children = tree.children || [];
 
   for (let i = 0; i < children.length; i++) {
     serializeNode(children[i], '', i === children.length - 1, lines);
@@ -875,14 +841,15 @@ function renderPackageScripts(scripts) {
 }
 
 /**
- * Render the folder structure section with a dark <pre><code> tree.
+ * Render the folder structure section.
  *
+ * @param {import('../scanner/scan.js').DirNode} tree
  * @param {string[]} flatFiles
- * @param {string}   rootName
+ * @param {string} rootName
  * @returns {string}
  */
-function renderFolderStructure(flatFiles, rootName) {
-  const treeStr = buildTreeString(flatFiles, rootName);
+function renderFolderStructure(tree, flatFiles, rootName) {
+  const treeStr = buildTreeString(tree, rootName, flatFiles.length);
 
   return `
   <section class="section">
@@ -999,7 +966,7 @@ function renderFooter() {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles } = result;
+  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles, tree } = result;
 
   const cwd      = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -1028,7 +995,7 @@ export function render(result, options = {}) {
       ${renderConfigurationFiles(configs)}
       ${renderPackageScripts(scripts)}
       ${renderStats(result)}
-      ${renderFolderStructure(flatFiles, rootName)}
+      ${renderFolderStructure(tree, flatFiles, rootName)}
       ${renderScanInfo()}
     </main>
 
