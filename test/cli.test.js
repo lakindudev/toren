@@ -13,16 +13,19 @@ const PKG_PATH = path.resolve(__dirname, '../package.json');
 
 const stripAnsi = (str) => str.replace(/\x1b\[[0-9;]*m/g, '');
 
-function runCLI(args) {
+function runCLI(args, options = {}) {
   try {
-    const output = execSync(`node ${CLI_PATH} ${args}`, { encoding: 'utf-8', stdio: 'pipe' });
+    const output = execSync(`node ${CLI_PATH} ${args}`, { encoding: 'utf-8', stdio: 'pipe', ...options });
     return {
       output: stripAnsi(output),
+      rawOutput: output,
       status: 0
     };
   } catch (err) {
+    const raw = (err.stdout || '') + (err.stderr || '');
     return {
-      output: stripAnsi(err.stdout + err.stderr),
+      output: stripAnsi(raw),
+      rawOutput: raw,
       status: err.status
     };
   }
@@ -135,6 +138,19 @@ describe('Toren CLI Integration Tests', () => {
     assert.equal(res.status, 1);
     assert.match(res.output, /✖ Conflicting options/);
     assert.match(res.output, /Focused output flags are mutually exclusive/);
+  });
+
+  test('Platform: NO_COLOR=1 removes ANSI codes from output', () => {
+    const res = runCLI('.', { env: { ...process.env, NO_COLOR: '1' } });
+    assert.equal(res.status, 0);
+    assert.doesNotMatch(res.rawOutput, /\x1b\[/);
+  });
+
+  test('Platform: FORCE_COLOR=1 forces ANSI codes in output', () => {
+    // FORCE_COLOR=1 overrides isTTY=false or NO_COLOR
+    const res = runCLI('.', { env: { ...process.env, FORCE_COLOR: '1', NO_COLOR: '' } });
+    assert.equal(res.status, 0);
+    assert.match(res.rawOutput, /\x1b\[/);
   });
 
 });
