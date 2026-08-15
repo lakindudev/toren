@@ -120,7 +120,7 @@ describe('Toren CLI Integration Tests', () => {
   test('Focused output: --structure', () => {
     const res = runCLI('. --structure');
     assert.equal(res.status, 0);
-    assert.match(res.output, /Project Structure\n─────────────────/);
+    assert.match(res.output, /Folder Structure\n────────────────/);
   });
 
   test('Focused output: --scripts', () => {

@@ -4,7 +4,9 @@
  * Consumes a {@link ScanResult} and produces styled terminal output.
  *
  * Design contract:
- *  - No business logic. Every value rendered is taken directly from ScanResult.
+ *  - Presentation-only. Every value rendered comes from ScanResult.
+ *    Presentation-level derivations (e.g. frameworks list from projectType) are
+ *    permitted here; business logic is not.
  *  - No imports from the scanner or any domain module.
  *  - Stateless: render() may be called multiple times safely.
  *  - The shape expected here matches the ScanResult typedef in scan.js.
@@ -90,6 +92,19 @@ function formatDuration(ms) {
   return `${Math.round(ms)} ms`;
 }
 
+/**
+ * Derive a frameworks array from the projectType string.
+ * Returns [] when no specific framework is detected (projectType is falsy or 'Unknown').
+ * Mirrors the identical derivation in json-renderer.js — both must stay in sync.
+ *
+ * @param {string} projectType
+ * @returns {string[]}
+ */
+function deriveFrameworks(projectType) {
+  if (!projectType || projectType === 'Unknown') return [];
+  return [projectType];
+}
+
 // ---------------------------------------------------------------------------
 // File-tree renderer  (private)
 // ---------------------------------------------------------------------------
@@ -159,8 +174,8 @@ function printBanner() {
 /**
  * Render a ScanResult to the terminal.
  *
- * All sections read exclusively from the ScanResult; no derivations or
- * business decisions are made here.
+ * All sections read from the ScanResult. Presentation-level derivations
+ * (e.g. frameworks list) are computed here; no business logic is added.
  *
  * @param {import('../scanner/scan.js').ScanResult} result
  * @param {{ cwd?: string }} [options]
@@ -191,6 +206,18 @@ export function render(result, options = {}) {
   row('Project type: ', paint(projectType, C.bold, C.green));
   row('Total files:  ', paint(String(flatFiles.length), C.yellow));
   row('Total folders:', paint(String(totalFolders), C.yellow));
+  console.log('');
+
+  // ── Frameworks ────────────────────────────────────────────────────────────
+  section('Frameworks');
+  const frameworks = deriveFrameworks(projectType);
+  if (frameworks.length === 0) {
+    console.log(paint('No frameworks detected.', C.dim));
+  } else {
+    for (const fw of frameworks) {
+      console.log(paint(fw, C.white));
+    }
+  }
   console.log('');
 
   // ── Entry Points ──────────────────────────────────────────────────────────
@@ -263,7 +290,7 @@ export function render(result, options = {}) {
 export function renderStructure(result) {
   const { tree, flatFiles } = result;
 
-  section('Project Structure');
+  section('Folder Structure');
   console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
 
   const counter  = { count: 0, maxReached: false };
