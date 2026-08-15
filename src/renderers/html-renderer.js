@@ -31,34 +31,6 @@ import path from 'node:path';
 // Tree builder (plain-text, HTML-safe — same algorithm as markdown-renderer)
 // ---------------------------------------------------------------------------
 
-/**
- * Build an in-memory nested tree from a flat list of relative file paths.
- *
- * @param {string[]} flatFiles - Relative file paths produced by scan()
- * @returns {{ type: string, children: Record<string, object> }}
- */
-function buildInternalTree(flatFiles) {
-  const root = { type: 'directory', children: {} };
-
-  for (const filePath of flatFiles) {
-    const parts = filePath.split(/[/\\]/).filter(Boolean);
-    let node = root;
-
-    for (let i = 0; i < parts.length; i++) {
-      const part   = parts[i];
-      const isLeaf = i === parts.length - 1;
-
-      if (!node.children[part]) {
-        node.children[part] = isLeaf
-          ? { type: 'file', name: part }
-          : { type: 'directory', name: part, children: {} };
-      }
-      node = node.children[part];
-    }
-  }
-
-  return root;
-}
 
 /**
  * Recursively serialise a tree node into classic tree-connector lines.
@@ -80,10 +52,7 @@ function serializeNode(node, prefix, isLast, lines, depth = 0, maxDepth = 5) {
   lines.push(`${prefix}${connector}${label}`);
 
   if (node.type === 'directory') {
-    const children = Object.values(node.children || {}).sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
+    const children = node.children || [];
 
     if (depth === maxDepth - 1 && children.length > 0) {
       lines.push(`${prefix}${childPad}└── ...`);
@@ -104,21 +73,18 @@ function serializeNode(node, prefix, isLast, lines, depth = 0, maxDepth = 5) {
 }
 
 /**
- * Convert a flat file list into a plain-text tree string.
+ * Convert a ScanResult tree into a plain-text tree string.
  *
- * @param {string[]} flatFiles
+ * @param {import('../scanner/scan.js').DirNode} tree
  * @param {string}   rootName
+ * @param {number}   totalFiles
  * @returns {string}
  */
-function buildTreeString(flatFiles, rootName) {
-  if (flatFiles.length === 0) return 'No files scanned.';
+function buildTreeString(tree, rootName, totalFiles) {
+  if (totalFiles === 0) return 'No files scanned.';
 
-  const root     = buildInternalTree(flatFiles);
   const lines    = [`${rootName}/`];
-  const children = Object.values(root.children).sort((a, b) => {
-    if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
+  const children = tree.children || [];
 
   for (let i = 0; i < children.length; i++) {
     serializeNode(children[i], '', i === children.length - 1, lines);
@@ -148,12 +114,13 @@ function esc(value) {
 
 /**
  * Format a scan duration in milliseconds to a human-readable string.
+ * Returns plain text only — callers are responsible for HTML-escaping via esc().
  *
  * @param {number} ms
  * @returns {string}
  */
 function formatDuration(ms) {
-  if (ms < 1)     return '&lt; 1 ms';
+  if (ms < 1)     return '< 1 ms';
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
   return `${Math.round(ms)} ms`;
 }
@@ -633,6 +600,19 @@ const icon = {
 // ---------------------------------------------------------------------------
 
 /**
+ * Derive a frameworks array from the projectType string.
+ * Returns [] when no specific framework is detected.
+ * Mirrors the identical derivation in console-renderer.js and json-renderer.js.
+ *
+ * @param {string} projectType
+ * @returns {string[]}
+ */
+function deriveFrameworks(projectType) {
+  if (!projectType || projectType === 'Unknown') return [];
+  return [projectType];
+}
+
+/**
  * Render the gradient page header.
  *
  * @param {string} projectType
@@ -696,7 +676,7 @@ function renderSummaryCards(result) {
     {
       label: 'Scan Duration',
       icon:  icon.clock(),
-      value: formatDuration(scanDurationMs),
+      value: esc(formatDuration(scanDurationMs)),
       isText: true,
       sub:   'wall-clock time',
     },
@@ -713,6 +693,41 @@ function renderSummaryCards(result) {
     </div>`).join('');
 
   return `<div class="cards">${cardHTML}</div>`;
+}
+
+/**
+ * Render the frameworks section.
+ *
+ * @param {string} projectType
+ * @returns {string}
+ */
+function renderFrameworks(projectType) {
+  const frameworks = deriveFrameworks(projectType);
+  const count      = frameworks.length;
+
+  const body = count === 0
+    ? `<p class="empty-msg">No frameworks detected.</p>`
+    : `<ul class="entry-list">
+        ${frameworks.map(fw => `
+          <li class="entry-item">
+            <span class="entry-dot"></span>
+            ${esc(fw)}
+          </li>`).join('')}
+       </ul>`;
+
+  const countBadge = count > 0
+    ? `<span class="section-count">${count} found</span>`
+    : '';
+
+  return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.code()}</div>
+      <h2 class="section-title">Frameworks</h2>
+      ${countBadge}
+    </div>
+    <div class="section-body">${body}</div>
+  </section>`;
 }
 
 /**
@@ -739,14 +754,14 @@ function renderEntryPoints(entryPoints) {
     : '';
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.door()}</div>
-      <span class="section-title">Entry Points</span>
+      <h2 class="section-title">Entry Points</h2>
       ${countBadge}
     </div>
     <div class="section-body">${body}</div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -773,14 +788,14 @@ function renderConfigurationFiles(configs) {
     : '';
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.file()}</div>
-      <span class="section-title">Configuration Files</span>
+      <h2 class="section-title">Configuration Files</h2>
       ${countBadge}
     </div>
     <div class="section-body">${body}</div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -815,31 +830,32 @@ function renderPackageScripts(scripts) {
     : '';
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.terminal()}</div>
-      <span class="section-title">Package Scripts</span>
+      <h2 class="section-title">Package Scripts</h2>
       ${countBadge}
     </div>
     <div class="section-body" style="padding:0">${body}</div>
-  </div>`;
+  </section>`;
 }
 
 /**
- * Render the folder structure section with a dark <pre><code> tree.
+ * Render the folder structure section.
  *
+ * @param {import('../scanner/scan.js').DirNode} tree
  * @param {string[]} flatFiles
- * @param {string}   rootName
+ * @param {string} rootName
  * @returns {string}
  */
-function renderFolderStructure(flatFiles, rootName) {
-  const treeStr = buildTreeString(flatFiles, rootName);
+function renderFolderStructure(tree, flatFiles, rootName) {
+  const treeStr = buildTreeString(tree, rootName, flatFiles.length);
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.tree()}</div>
-      <span class="section-title">Folder Structure</span>
+      <h2 class="section-title">Folder Structure</h2>
       ${flatFiles.length > 0 ? `<span class="section-count">${flatFiles.length} files</span>` : ''}
     </div>
     <div class="section-body">
@@ -847,7 +863,7 @@ function renderFolderStructure(flatFiles, rootName) {
         <pre><code>${esc(treeStr)}</code></pre>
       </div>
     </div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -868,14 +884,14 @@ function renderStats(result) {
   const rowsHTML = rows.map(([metric, value, isNum]) => `
     <tr>
       <td>${esc(metric)}</td>
-      <td class="${isNum ? 'val' : 'val-plain'}">${value}</td>
+      <td class="${isNum ? 'val' : 'val-plain'}">${esc(value)}</td>
     </tr>`).join('');
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.bar()}</div>
-      <span class="section-title">Statistics</span>
+      <h2 class="section-title">Statistics</h2>
     </div>
     <div class="section-body">
       <table class="data-table">
@@ -888,7 +904,7 @@ function renderStats(result) {
         <tbody>${rowsHTML}</tbody>
       </table>
     </div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -909,17 +925,17 @@ function renderScanInfo() {
     </tr>`).join('');
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.info()}</div>
-      <span class="section-title">Scan Information</span>
+      <h2 class="section-title">Scan Information</h2>
     </div>
     <div class="section-body">
       <table class="data-table">
         <tbody>${rowsHTML}</tbody>
       </table>
     </div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -950,7 +966,7 @@ function renderFooter() {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles } = result;
+  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles, tree } = result;
 
   const cwd      = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -974,11 +990,12 @@ export function render(result, options = {}) {
 
     <main>
       ${renderSummaryCards(result)}
+      ${renderFrameworks(projectType)}
       ${renderEntryPoints(entryPoints)}
       ${renderConfigurationFiles(configs)}
       ${renderPackageScripts(scripts)}
-      ${renderFolderStructure(flatFiles, rootName)}
       ${renderStats(result)}
+      ${renderFolderStructure(tree, flatFiles, rootName)}
       ${renderScanInfo()}
     </main>
 

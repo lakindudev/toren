@@ -45,6 +45,47 @@ const C = {
 const PREVIEW_LIMIT = 20;
 
 // ---------------------------------------------------------------------------
+// Cross-platform capability detection
+// ---------------------------------------------------------------------------
+
+function shouldEnableColors() {
+  if ('FORCE_COLOR' in process.env) {
+    return process.env.FORCE_COLOR !== '0' && process.env.FORCE_COLOR !== 'false';
+  }
+  if ('NO_COLOR' in process.env) return false;
+  if (!process.stdout || !process.stdout.isTTY) return false;
+  if (process.env.TERM === 'dumb') return false;
+  return true;
+}
+
+function isUnicodeSupported() {
+  if (process.platform !== 'win32') {
+    return process.env.TERM !== 'linux';
+  }
+  return Boolean(
+    process.env.CI ||
+    process.env.WT_SESSION ||
+    process.env.TERMINUS_SUBLIME ||
+    process.env.ConEmuTask === '{cmd::Cmder}' ||
+    process.env.TERM_PROGRAM === 'Terminus-Sublime' ||
+    process.env.TERM_PROGRAM === 'vscode' ||
+    process.env.TERM === 'xterm-256color' ||
+    process.env.TERM === 'alacritty' ||
+    process.env.TERMINAL_EMULATOR === 'JetBrains-JediTerm'
+  );
+}
+
+const useColors  = shouldEnableColors();
+const useUnicode = isUnicodeSupported();
+
+const CHARS = {
+  dash:   useUnicode ? '─'    : '-',
+  corner: useUnicode ? '└── ' : '\\-- ',
+  tee:    useUnicode ? '├── ' : '+-- ',
+  pipe:   useUnicode ? '│   ' : '|   ',
+};
+
+// ---------------------------------------------------------------------------
 // Low-level paint / layout helpers  (private to this module)
 // ---------------------------------------------------------------------------
 
@@ -55,6 +96,7 @@ const PREVIEW_LIMIT = 20;
  * @returns {string}
  */
 function paint(text, ...codes) {
+  if (!useColors) return text;
   return `${codes.join('')}${text}${C.reset}`;
 }
 
@@ -65,7 +107,7 @@ function paint(text, ...codes) {
 function section(title) {
   const cleanTitle = title.replace(/\x1b\[[0-9;]*m/g, '');
   console.log(paint(title, C.bold, C.white));
-  console.log(paint('─'.repeat(cleanTitle.length), C.dim));
+  console.log(paint(CHARS.dash.repeat(cleanTitle.length), C.dim));
   console.log('');
 }
 
@@ -125,21 +167,21 @@ function renderTree(node, prefix, isLast, counter, limit = PREVIEW_LIMIT, depth 
   if (counter.maxReached) return;
   if (depth >= maxDepth) return;
 
-  const connector = isLast ? '└── ' : '├── ';
-  const extension = isLast ? '    ' : '│   ';
+  const connector = isLast ? CHARS.corner : CHARS.tee;
+  const extension = isLast ? '    ' : CHARS.pipe;
 
   if (node.type === 'directory') {
-    console.log(`${prefix}${connector}${paint(`${node.name}/`, C.bold, C.blue)}`);
+    console.log(`${prefix}${connector}${paint(`${node.name}${path.sep}`, C.bold, C.blue)}`);
     const children = node.children ?? [];
     
     if (depth === maxDepth - 1 && children.length > 0) {
-       console.log(`${prefix}${extension}└── ${paint('...', C.dim)}`);
+       console.log(`${prefix}${extension}${CHARS.corner}${paint('...', C.dim)}`);
        return;
     }
 
     for (let i = 0; i < children.length; i++) {
       if (counter.count >= limit) {
-        console.log(`${prefix}${extension}└── ${paint('...', C.dim)}`);
+        console.log(`${prefix}${extension}${CHARS.corner}${paint('...', C.dim)}`);
         counter.maxReached = true;
         break;
       }
@@ -258,13 +300,13 @@ export function render(result, options = {}) {
   // ── Structure Preview ─────────────────────────────────────────────────────
   section('Folder Structure');
 
-  console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
+  console.log(paint(`${tree.name || '.'}${path.sep}`, C.bold, C.blue));
 
   const counter  = { count: 0, maxReached: false };
   const children = tree.children ?? [];
   for (let i = 0; i < children.length; i++) {
     if (counter.count >= PREVIEW_LIMIT) {
-      console.log(`└── ${paint('...', C.dim)}`);
+      console.log(`${CHARS.corner}${paint('...', C.dim)}`);
       break;
     }
     renderTree(children[i], '', i === children.length - 1, counter);
@@ -291,7 +333,7 @@ export function renderStructure(result) {
   const { tree, flatFiles } = result;
 
   section('Folder Structure');
-  console.log(paint(`${tree.name || '.'}/`, C.bold, C.blue));
+  console.log(paint(`${tree.name || '.'}${path.sep}`, C.bold, C.blue));
 
   const counter  = { count: 0, maxReached: false };
   const children = tree.children ?? [];
@@ -299,7 +341,7 @@ export function renderStructure(result) {
 
   for (let i = 0; i < children.length; i++) {
     if (counter.count >= limit) {
-      console.log(`└── ${paint('...', C.dim)}`);
+      console.log(`${CHARS.corner}${paint('...', C.dim)}`);
       break;
     }
     renderTree(children[i], '', i === children.length - 1, counter, limit, 0, Infinity);
