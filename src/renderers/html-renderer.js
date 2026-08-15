@@ -754,14 +754,14 @@ function renderFrameworks(projectType) {
     : '';
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.code()}</div>
-      <span class="section-title">Frameworks</span>
+      <h2 class="section-title">Frameworks</h2>
       ${countBadge}
     </div>
     <div class="section-body">${body}</div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -788,14 +788,14 @@ function renderEntryPoints(entryPoints) {
     : '';
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.door()}</div>
-      <span class="section-title">Entry Points</span>
+      <h2 class="section-title">Entry Points</h2>
       ${countBadge}
     </div>
     <div class="section-body">${body}</div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -822,14 +822,14 @@ function renderConfigurationFiles(configs) {
     : '';
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.file()}</div>
-      <span class="section-title">Configuration Files</span>
+      <h2 class="section-title">Configuration Files</h2>
       ${countBadge}
     </div>
     <div class="section-body">${body}</div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -864,14 +864,14 @@ function renderPackageScripts(scripts) {
     : '';
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.terminal()}</div>
-      <span class="section-title">Package Scripts</span>
+      <h2 class="section-title">Package Scripts</h2>
       ${countBadge}
     </div>
     <div class="section-body" style="padding:0">${body}</div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -885,10 +885,10 @@ function renderFolderStructure(flatFiles, rootName) {
   const treeStr = buildTreeString(flatFiles, rootName);
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.tree()}</div>
-      <span class="section-title">Folder Structure</span>
+      <h2 class="section-title">Folder Structure</h2>
       ${flatFiles.length > 0 ? `<span class="section-count">${flatFiles.length} files</span>` : ''}
     </div>
     <div class="section-body">
@@ -896,7 +896,7 @@ function renderFolderStructure(flatFiles, rootName) {
         <pre><code>${esc(treeStr)}</code></pre>
       </div>
     </div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -917,14 +917,14 @@ function renderStats(result) {
   const rowsHTML = rows.map(([metric, value, isNum]) => `
     <tr>
       <td>${esc(metric)}</td>
-      <td class="${isNum ? 'val' : 'val-plain'}">${value}</td>
+      <td class="${isNum ? 'val' : 'val-plain'}">${esc(value)}</td>
     </tr>`).join('');
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.bar()}</div>
-      <span class="section-title">Statistics</span>
+      <h2 class="section-title">Statistics</h2>
     </div>
     <div class="section-body">
       <table class="data-table">
@@ -937,7 +937,7 @@ function renderStats(result) {
         <tbody>${rowsHTML}</tbody>
       </table>
     </div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -958,17 +958,17 @@ function renderScanInfo() {
     </tr>`).join('');
 
   return `
-  <div class="section">
+  <section class="section">
     <div class="section-header">
       <div class="section-icon">${icon.info()}</div>
-      <span class="section-title">Scan Information</span>
+      <h2 class="section-title">Scan Information</h2>
     </div>
     <div class="section-body">
       <table class="data-table">
         <tbody>${rowsHTML}</tbody>
       </table>
     </div>
-  </div>`;
+  </section>`;
 }
 
 /**
@@ -1027,8 +1027,8 @@ export function render(result, options = {}) {
       ${renderEntryPoints(entryPoints)}
       ${renderConfigurationFiles(configs)}
       ${renderPackageScripts(scripts)}
-      ${renderFolderStructure(flatFiles, rootName)}
       ${renderStats(result)}
+      ${renderFolderStructure(flatFiles, rootName)}
       ${renderScanInfo()}
     </main>
 
