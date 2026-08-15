@@ -310,3 +310,223 @@ describe('Empty-State Rendering', () => {
 });
 
 
+// ---------------------------------------------------------------------------
+// JSON Output Consistency tests (v1.0.7)
+// Covers all six required scenarios from the requirement spec.
+// ---------------------------------------------------------------------------
+
+describe('JSON Output Consistency', () => {
+  // Shared helper: create a temp dir, write files, return cleanup fn.
+  function makeDir(files) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'toren-json-'));
+    for (const [name, content] of Object.entries(files)) {
+      fs.writeFileSync(path.join(dir, name), content);
+    }
+    return dir;
+  }
+
+  // Canonical property order that every JSON response must follow.
+  const PROPERTY_ORDER = [
+    'meta', 'project', 'frameworks', 'entryPoints',
+    'configs', 'scripts', 'statistics', 'structure', 'summary',
+  ];
+
+  function getJSON(args) {
+    const res = runCLI(`${args} --format json`);
+    assert.equal(res.status, 0, `CLI exited with ${res.status}:\n${res.output}`);
+    return JSON.parse(res.output);
+  }
+
+  // ── 1. Normal repository ──────────────────────────────────────────────────
+
+  test('normal repo: all top-level keys present in canonical order', () => {
+    const data = getJSON('.');
+    const actualOrder = Object.keys(data);
+    assert.deepEqual(actualOrder, PROPERTY_ORDER);
+  });
+
+  test('normal repo: project block has name, path and type fields', () => {
+    const data = getJSON('.');
+    assert.equal(typeof data.project.name, 'string', 'project.name must be string');
+    assert.equal(typeof data.project.path, 'string', 'project.path must be string');
+    assert.equal(typeof data.project.type, 'string', 'project.type must be string');
+    assert.ok(data.project.name.length > 0, 'project.name must not be empty');
+  });
+
+  test('normal repo: all array fields are arrays (never null)', () => {
+    const data = getJSON('.');
+    for (const key of ['frameworks', 'entryPoints', 'configs', 'scripts', 'structure']) {
+      assert.ok(Array.isArray(data[key]), `${key} must be an array, got ${typeof data[key]}`);
+      assert.notEqual(data[key], null, `${key} must not be null`);
+    }
+  });
+
+  test('normal repo: statistics block contains only numeric values', () => {
+    const data = getJSON('.');
+    const { files, folders, durationMs } = data.statistics;
+    assert.equal(typeof files,     'number', 'statistics.files must be number');
+    assert.equal(typeof folders,   'number', 'statistics.folders must be number');
+    assert.equal(typeof durationMs,'number', 'statistics.durationMs must be number');
+    assert.ok(Number.isFinite(files),      'statistics.files must be finite');
+    assert.ok(Number.isFinite(folders),    'statistics.folders must be finite');
+    assert.ok(Number.isFinite(durationMs), 'statistics.durationMs must be finite');
+    assert.equal(durationMs, Math.round(durationMs), 'statistics.durationMs must be an integer');
+  });
+
+  test('normal repo: statistics and summary contain identical numeric data', () => {
+    const data = getJSON('.');
+    assert.equal(data.statistics.files,     data.summary.totalFiles,     'files mismatch');
+    assert.equal(data.statistics.folders,   data.summary.totalFolders,   'folders mismatch');
+    assert.equal(data.statistics.durationMs,data.summary.scanDurationMs, 'duration mismatch');
+  });
+
+  test('normal repo: meta block has generatedBy, version, schema', () => {
+    const data = getJSON('.');
+    assert.equal(data.meta.generatedBy, 'Toren');
+    assert.equal(typeof data.meta.version, 'string');
+    assert.equal(data.meta.schema, 1);
+  });
+
+  test('normal repo: JSON.stringify output is valid JSON (no NaN/undefined)', () => {
+    const res = runCLI('. --format json');
+    assert.equal(res.status, 0);
+    // JSON.parse throws on invalid JSON — this would catch NaN serialised as null incorrectly
+    const parsed = JSON.parse(res.output);
+    assert.ok(parsed, 'output must be parseable JSON');
+    // Verify statistics durationMs is not null (NaN serialises as null)
+    assert.notEqual(parsed.statistics.durationMs, null);
+    assert.notEqual(parsed.summary.scanDurationMs, null);
+  });
+
+  // ── 2. Empty repository ───────────────────────────────────────────────────
+
+  test('empty repo: all array fields are empty arrays (not null/undefined)', () => {
+    const dir = makeDir({ 'README.md': '# empty\n' });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.deepEqual(data.frameworks,  []);
+    assert.deepEqual(data.scripts,     []);
+    assert.equal(typeof data.project.type, 'string');
+  });
+
+  test('empty repo: statistics.files reflects actual file count', () => {
+    const dir = makeDir({ 'README.md': '# test\n' });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.equal(data.statistics.files,   1, 'should count README.md');
+    assert.equal(data.statistics.folders, 0, 'no subdirectories');
+    assert.ok(Number.isFinite(data.statistics.durationMs));
+  });
+
+  test('empty repo: structure is an array (empty or with root file nodes)', () => {
+    const dir = makeDir({});
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.ok(Array.isArray(data.structure), 'structure must be an array');
+  });
+
+  // ── 3. Repository without package.json ───────────────────────────────────
+
+  test('no package.json: scripts is empty array (never null)', () => {
+    const dir = makeDir({ 'main.py': 'print("hello")\n', 'requirements.txt': 'flask\n' });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.ok(Array.isArray(data.scripts), 'scripts must be array');
+    assert.deepEqual(data.scripts, [],     'scripts must be empty for Python project');
+  });
+
+  test('no package.json: project.type is non-null string', () => {
+    const dir = makeDir({ 'main.py': 'print("hello")\n' });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.equal(typeof data.project.type, 'string');
+    assert.notEqual(data.project.type, null);
+  });
+
+  // ── 4. Repository without frameworks (Unknown type) ───────────────────────
+
+  test('no frameworks: frameworks is empty array (never null or absent)', () => {
+    const dir = makeDir({ 'README.md': '# bare project\n' });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.ok(Array.isArray(data.frameworks), 'frameworks must be array even when empty');
+    assert.deepEqual(data.frameworks, []);
+    assert.equal(data.project.type, 'Unknown');
+  });
+
+  test('no frameworks: property order still canonical', () => {
+    const dir = makeDir({ 'README.md': '# test\n' });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.deepEqual(Object.keys(data), PROPERTY_ORDER);
+  });
+
+  // ── 5. Repository with configs ────────────────────────────────────────────
+
+  test('with configs: configs array contains matched config filenames', () => {
+    const dir = makeDir({
+      'package.json':  '{"name":"app","version":"1.0.0"}',
+      'tsconfig.json': '{"compilerOptions":{}}',
+      'vite.config.ts':'export default {}',
+    });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.ok(Array.isArray(data.configs), 'configs must be array');
+    assert.ok(data.configs.length > 0,     'configs must be non-empty');
+    // All items must be strings
+    for (const c of data.configs) {
+      assert.equal(typeof c, 'string', `config item must be string, got ${typeof c}`);
+    }
+    assert.ok(data.configs.includes('package.json'), 'package.json should be in configs');
+  });
+
+  // ── 6. Repository with scripts ────────────────────────────────────────────
+
+  test('with scripts: each script item has string name and string command', () => {
+    const dir = makeDir({
+      'package.json': JSON.stringify({
+        name: 'my-app',
+        scripts: { start: 'node index.js', build: 'tsc', test: 'jest' },
+      }),
+      'index.js': 'console.log("hi")',
+    });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    assert.ok(Array.isArray(data.scripts), 'scripts must be array');
+    assert.ok(data.scripts.length > 0,     'scripts must be non-empty');
+
+    for (const s of data.scripts) {
+      assert.equal(typeof s.name,    'string', 'script.name must be string');
+      assert.equal(typeof s.command, 'string', 'script.command must be string');
+      assert.ok(s.name.length    > 0, 'script.name must not be empty');
+      assert.ok(s.command.length > 0, 'script.command must not be empty');
+    }
+  });
+
+  test('with scripts: script names include expected keys from package.json', () => {
+    const dir = makeDir({
+      'package.json': JSON.stringify({
+        name: 'test-app',
+        scripts: { start: 'node index.js', test: 'jest', build: 'tsc' },
+      }),
+      'index.js': 'module.exports = {}',
+    });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const data = getJSON(dir);
+    const scriptNames = data.scripts.map(s => s.name);
+    assert.ok(scriptNames.includes('start'), 'should include "start" script');
+    assert.ok(scriptNames.includes('test'),  'should include "test" script');
+    assert.ok(scriptNames.includes('build'), 'should include "build" script');
+  });
+
+});

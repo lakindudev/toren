@@ -13,13 +13,13 @@
  *
  * Output property order:
  *  1. meta          — schema version + generator provenance
- *  2. project       — path, detected type
+ *  2. project       — name (basename), path (relative), detected type
  *  3. frameworks    — derived array of detected frameworks ([] when none)
  *  4. entryPoints   — array of detected entry-point paths
  *  5. configs       — array of detected configuration file paths
  *  6. scripts       — array of { name, command } objects
- *  7. structure     — recursive file-tree array
- *  8. statistics    — file/folder counts and scan duration (structured)
+ *  7. statistics    — file/folder counts and scan duration (structured)
+ *  8. structure     — recursive file-tree array
  *  9. summary       — retained for backward compatibility (same data as statistics)
  */
 
@@ -94,13 +94,16 @@ export function render(result, options = {}) {
     scanDurationMs,
   } = result;
 
-  const cwd     = options.cwd ?? process.cwd();
-  const relRoot  = path.relative(cwd, rootPath) || '.';
+  const cwd      = options.cwd ?? process.cwd();
+  const relRoot   = path.relative(cwd, rootPath) || '.';
+  const rootName  = path.basename(rootPath) || relRoot;
 
   // Shared statistics values — computed once, used in both `statistics` and
   // the backward-compatible `summary` block.
-  const totalFiles         = flatFiles.length;
-  const durationMs         = Math.round(scanDurationMs);
+  // Guard against NaN/undefined: JSON.stringify(NaN) produces null, breaking
+  // the schema guarantee that durationMs is always a number.
+  const totalFiles = flatFiles.length;
+  const durationMs = Number.isFinite(scanDurationMs) ? Math.round(scanDurationMs) : 0;
 
   const output = {
     // 1. Provenance — lets consumers detect schema changes.
@@ -110,8 +113,10 @@ export function render(result, options = {}) {
       schema:      1,
     },
 
-    // 2. Project identity.
+    // 2. Project identity — name is the human-readable basename; path is the
+    //    relative path used for filesystem resolution.
     project: {
+      name: rootName,
       path: relRoot,
       type: projectType,
     },
@@ -119,20 +124,22 @@ export function render(result, options = {}) {
     // 3. Detected frameworks — always an array.
     frameworks: deriveFrameworks(projectType),
 
-    // 4–6. Discovery results — all arrays, always present.
+    // 4–6. Discovery results — all arrays, always present, never null.
     entryPoints: Array.isArray(entryPoints) ? entryPoints : [],
     configs:     Array.isArray(configs)     ? configs     : [],
     scripts:     Array.isArray(scripts)     ? scripts     : [],
 
-    // 7. File-tree — array of root-level nodes; always present.
-    structure: (tree?.children || []).map(mapTree),
-
-    // 8. Structured statistics block.
+    // 7. Structured statistics — always a complete object with numeric values.
+    //    durationMs is rounded to the nearest millisecond (integer).
     statistics: {
-      files:       totalFiles,
-      folders:     totalFolders,
+      files:     totalFiles,
+      folders:   totalFolders,
       durationMs,
     },
+
+    // 8. File-tree — array of root-level nodes; always present.
+    //    Empty array when the scanned directory is empty.
+    structure: (tree?.children || []).map(mapTree),
 
     // 9. Backward-compatible summary block — preserved for existing consumers.
     //    Contains the same data under the original field names.
