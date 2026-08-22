@@ -15,7 +15,7 @@
   "scripts": {
     "start": "node bin/toren.js",
     "test": "node --test",
-    "lint": "node --check bin/toren.js src/scanner/scan.js src/lifecycle.js src/renderers/index.js src/renderers/console-renderer.js src/renderers/json-renderer.js src/renderers/markdown-renderer.js src/renderers/html-renderer.js"
+    "lint": "node --check bin/toren.js src/scanner/scan.js src/lifecycle.js src/renderers/index.js src/renderers/console-renderer.js src/renderers/json-renderer.js src/renderers/markdown-renderer.js src/renderers/html-renderer.js src/detectors/config-detector.js src/detectors/script-detector.js src/detectors/package-manager-detector.js"
   },
   "keywords": [
     "cli tool",

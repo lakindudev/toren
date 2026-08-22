@@ -20,8 +20,9 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { detectConfigs } from '../detectors/config-detector.js';
-import { detectScripts } from '../detectors/script-detector.js';
+import { detectConfigs }         from '../detectors/config-detector.js';
+import { detectScripts }         from '../detectors/script-detector.js';
+import { detectPackageManager }  from '../detectors/package-manager-detector.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -100,6 +101,7 @@ const PROJECT_TYPE_MARKERS = [
  * @property {Array<string>}       entryPoints    - Relative paths of detected entry points
  * @property {Array<string>}       configs        - Relative paths of detected config files
  * @property {Array<{name: string, command: string}>} scripts - Parsed package scripts
+ * @property {string|null}         packageManager - Detected package manager, or null if none/ambiguous
  * @property {DirNode}             tree           - Full in-memory file tree
  * @property {Array<string>}       flatFiles      - All relative file paths (flat list)
  * @property {number}              totalFolders   - Total number of directories walked
@@ -475,6 +477,9 @@ export function scan(targetPath, options = {}) {
   let configs = [];
   /** @type {Array<{name: string, command: string}>} */
   let scripts = [];
+  /** @type {string|null} */
+  let packageManager = null;
+
 
   const startTime   = performance.now();
   let tree;
@@ -489,6 +494,7 @@ export function scan(targetPath, options = {}) {
     entryPoints = findEntryPoints(projectType, flatFiles, rootPath);
     configs = detectConfigs(flatFiles).configs;
     scripts = detectScripts(rootPath).scripts;
+    packageManager = detectPackageManager(flatFiles).packageManager;
   } else if (stat.isFile()) {
     const relFilePath = toPosix(path.basename(rootPath));
     tree = {
@@ -507,6 +513,7 @@ export function scan(targetPath, options = {}) {
     entryPoints = [relFilePath]; // A single file is its own entry point
     configs = detectConfigs(flatFiles).configs;
     scripts = detectScripts(path.dirname(rootPath)).scripts;
+    packageManager = detectPackageManager(flatFiles).packageManager;
   } else {
     const err = new Error(`Path is neither a file nor a directory: ${rootPath}`);
     err.title = 'Unsupported path type';
@@ -524,6 +531,7 @@ export function scan(targetPath, options = {}) {
     entryPoints,
     configs,
     scripts,
+    packageManager,
     tree,
     flatFiles,
     totalFolders,
