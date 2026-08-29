@@ -70,6 +70,9 @@ Fast Repository Discovery CLI
   --structure         Show repository structure only
   --configs           Show detected project configuration files
   --scripts           Show available package scripts only
+  --summary           Show project summary only
+  --important-files   Show important files only
+  --health            Show project health observations only
   --include-hidden    Include hidden files and folders
   --max-files <n>     Set scan file limit
   --doctor            Run CLI diagnostics

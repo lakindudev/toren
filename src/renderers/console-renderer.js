@@ -229,6 +229,10 @@ export function render(result, options = {}) {
     entryPoints,
     configs = [],
     scripts = [],
+    packageManager,
+    importantFiles = [],
+    projectInfo = null,
+    health = [],
     tree,
     flatFiles,
     totalFolders,
@@ -245,9 +249,48 @@ export function render(result, options = {}) {
   // ── Summary ───────────────────────────────────────────────────────────────
   section('Project Summary');
   row('Path:         ', paint(relRoot, C.cyan));
+  if (projectInfo && projectInfo.name) {
+    row('Name:         ', paint(projectInfo.name, C.white));
+  }
   row('Project type: ', paint(projectType, C.bold, C.green));
+  if (packageManager) {
+    row('Pkg manager:  ', paint(packageManager, C.white));
+  }
   row('Total files:  ', paint(String(flatFiles.length), C.yellow));
   row('Total folders:', paint(String(totalFolders), C.yellow));
+  console.log('');
+
+  // ── Project Health ────────────────────────────────────────────────────────
+  section('Project Health');
+  if (health.length === 0) {
+    console.log(paint('No project health observations available.', C.dim));
+  } else {
+    for (const h of health) {
+      let icon = 'ℹ';
+      let color = C.white;
+      if (h.status === 'pass') {
+        icon = '✓';
+        color = C.green;
+      } else if (h.status === 'warning') {
+        icon = '⚠';
+        color = C.yellow;
+      }
+      console.log(`${paint(icon, color)} ${h.message}`);
+    }
+  }
+  console.log('');
+
+  // ── Important Files ───────────────────────────────────────────────────────
+  section('Important Files');
+  if (importantFiles.length === 0) {
+    console.log(paint('No important files detected.', C.dim));
+  } else {
+    importantFiles.forEach((f, idx) => {
+      console.log(`${idx + 1}. ${paint(f.path, C.white)}`);
+      console.log(`   ${paint(f.reason, C.dim)}`);
+      if (idx < importantFiles.length - 1) console.log('');
+    });
+  }
   console.log('');
 
   // ── Frameworks ────────────────────────────────────────────────────────────
@@ -289,10 +332,16 @@ export function render(result, options = {}) {
   if (scripts.length === 0) {
     console.log(paint('No package scripts detected.', C.dim));
   } else {
-    const maxNameLen = Math.max(...scripts.map(s => s.name.length));
-    for (const s of scripts) {
-      const paddedName = s.name.padEnd(maxNameLen, ' ');
-      console.log(`${paint(paddedName, C.white)}  ${paint(s.command, C.dim)}`);
+    for (let i = 0; i < scripts.length; i++) {
+      const s = scripts[i];
+      const usage = s.usage || `npm run ${s.name}`;
+      console.log(paint(usage, C.white));
+      if (s.description) {
+        console.log(`  ${paint(s.description, C.dim)}`);
+      } else {
+        console.log(`  ${paint(s.command, C.dim)}`);
+      }
+      if (i < scripts.length - 1) console.log('');
     }
   }
   console.log('');

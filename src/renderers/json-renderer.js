@@ -88,6 +88,10 @@ export function render(result, options = {}) {
     entryPoints   = [],
     configs       = [],
     scripts       = [],
+    packageManager,
+    importantFiles = [],
+    projectInfo = null,
+    health        = [],
     tree,
     flatFiles     = [],
     totalFolders  = 0,
@@ -116,9 +120,16 @@ export function render(result, options = {}) {
     // 2. Project identity — name is the human-readable basename; path is the
     //    relative path used for filesystem resolution.
     project: {
-      name: rootName,
+      name: (projectInfo && projectInfo.name) ? projectInfo.name : rootName,
       path: relRoot,
       type: projectType,
+      packageManager: packageManager || null,
+      runtime: projectInfo ? projectInfo.runtime : null,
+      language: projectInfo ? projectInfo.language : null,
+      framework: projectInfo ? projectInfo.framework : null,
+      architecture: projectInfo ? projectInfo.architecture : null,
+      entryPoint: projectInfo ? projectInfo.entryPoint : null,
+      sourceDirectory: projectInfo ? projectInfo.sourceDirectory : null,
     },
 
     // 3. Detected frameworks — always an array.
@@ -128,6 +139,9 @@ export function render(result, options = {}) {
     entryPoints: Array.isArray(entryPoints) ? entryPoints : [],
     configs:     Array.isArray(configs)     ? configs     : [],
     scripts:     Array.isArray(scripts)     ? scripts     : [],
+    
+    importantFiles: Array.isArray(importantFiles) ? importantFiles : [],
+    health:         Array.isArray(health)         ? health         : [],
 
     // 7. Structured statistics — always a complete object with numeric values.
     //    durationMs is rounded to the nearest millisecond (integer).

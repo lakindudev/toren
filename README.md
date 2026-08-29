@@ -1,4 +1,4 @@
-# Toren — Codebase Analyzer CLI
+# Toren — Fast Repository Discovery CLI
 
 > The fastest way to understand any project structure. A zero-dependency codebase scanner CLI for modern developers.
 
@@ -23,6 +23,8 @@ Built with zero external dependencies, this **Node.js repository explorer** is t
 - **Framework Detection**: Instantly identifies Node.js, React, Next.js, Vue, Nuxt, Angular, Svelte, Python, Go, Rust, Spring Boot, Ruby, PHP, Elixir and more.
 - **Entry Point Detection**: Automatically pinpoints where execution begins (e.g., `index.js`, `main.ts`, `App.tsx`, `main.go`).
 - **Project Structure Visualizer**: Generates clean, hierarchical file trees.
+- **Project Health Diagnostics**: Provides observations and warnings for common project health issues.
+- **Package Manager Detection**: Identifies whether a project uses npm, pnpm, yarn, bun, etc.
 - **Multiple Output Formats**: Choose between `console` (default), `json`, `markdown`, or `html` reports.
 - **Zero Dependencies**: A pure Node.js CLI tool with no external runtime packages. Lightning fast install, infinitely secure.
 - **CLI Lifecycle Tools**: Native diagnostic and uninstallation tools (`--doctor`, `--uninstall`).
@@ -69,6 +71,9 @@ toren --entry-points
 toren --structure
 toren --configs
 toren --scripts
+toren --summary
+toren --important-files
+toren --health
 
 # Lifecycle & Help Commands
 toren --help
@@ -88,6 +93,9 @@ toren --uninstall
 | `--structure` | Show repository structure only. |
 | `--configs` | Show detected project configuration files. |
 | `--scripts` | Show available package scripts only. |
+| `--summary` | Show project summary only. |
+| `--important-files` | Show important files only. |
+| `--health` | Show project health observations only. |
 | `--format <type>` | Output format: `console` (default), `json`, `markdown`, `html`. |
 | `--include-hidden` | Include hidden files and dot-directories in the scan. |
 | `--max-files <n>` | Override the default 50,000-file scan limit. |
@@ -97,7 +105,7 @@ toren --uninstall
 | `--uninstall` | Safely remove Toren from the global npm environment. |
 
 > **Note:** `--format md` is not a valid alias. Use `--format markdown` in full.
-> **Note:** Focused output flags (`--project-type`, `--frameworks`, `--entry-points`, `--structure`, `--configs`, `--scripts`) are mutually exclusive.
+> **Note:** Focused output flags are mutually exclusive.
 
 ---
 
@@ -107,7 +115,7 @@ toren --uninstall
 The default `console` format renders a beautiful summary directly in your terminal:
 
 ```text
-Toren v1.0.6  —  Codebase Onboarding Intelligence
+Toren v1.0.7  —  Fast Repository Discovery CLI
 
 Project Summary
 ───────────────
@@ -153,25 +161,6 @@ Project Type
 
 Node.js / JavaScript
 
-$ toren --frameworks
-Frameworks
-──────────
-
-React
-
-$ toren --entry-points
-Entry Points
-────────────
-
-src/main.tsx
-
-$ toren --configs
-Configuration Files
-───────────────────
-
-package.json
-vite.config.ts
-
 $ toren --scripts
 Package Scripts
 ───────────────
@@ -185,19 +174,54 @@ Generate machine-readable output for scripts, toolchains, or AI context windows 
 
 ```json
 {
+  "meta": {
+    "version": "1.0.7",
+    "scanDurationMs": 4,
+    "timestamp": "2026-08-29T23:51:00.000Z"
+  },
   "project": {
+    "name": "my-react-app",
     "path": "./my-react-app",
     "type": "React",
-    "framework": "React"
+    "framework": "React",
+    "packageManager": "npm"
   },
-  "summary": {
-    "totalFiles": 32,
-    "totalFolders": 6,
-    "scanDurationMs": 4
-  },
+  "frameworks": [
+    "React"
+  ],
   "entryPoints": [
     "src/main.tsx"
   ],
+  "configs": [
+    "package.json",
+    "vite.config.ts"
+  ],
+  "scripts": [
+    {
+      "name": "start",
+      "command": "vite",
+      "description": "Start the development server",
+      "category": "development",
+      "usage": "npm start"
+    }
+  ],
+  "importantFiles": [
+    {
+      "path": "package.json",
+      "reason": "Defines dependencies"
+    }
+  ],
+  "health": [
+    {
+      "id": "readme",
+      "status": "pass",
+      "message": "README file is present"
+    }
+  ],
+  "statistics": {
+    "totalFiles": 32,
+    "totalFolders": 6
+  },
   "structure": [
     {
       "type": "folder",
@@ -208,7 +232,12 @@ Generate machine-readable output for scripts, toolchains, or AI context windows 
       ]
     },
     { "type": "file", "name": "package.json" }
-  ]
+  ],
+  "summary": {
+    "totalFiles": 32,
+    "totalFolders": 6,
+    "scanDurationMs": 4
+  }
 }
 ```
 
@@ -217,6 +246,12 @@ Generate machine-readable output for scripts, toolchains, or AI context windows 
 ---
 
 ## Release Notes
+
+### v1.0.7 - Intelligence Upgrade
+- **Project Intelligence Upgrade**: Added Package Manager detection, project metadata extraction (name, language, runtime, architecture), and important file detection.
+- **Project Health Checks**: New `--health` flag to evaluate repository health (checking for README, License, linting, tests, docker files).
+- **Richer Output Formats**: Expanded HTML and Markdown renderers to include the newly extracted project details, ensuring a highly readable and comprehensive project overview.
+- **Enhanced JSON schema**: Output JSON schema has been substantially updated to support these rich data properties in a deterministic order.
 
 ### v1.0.6 - CLI Experience Update
 - **Redesigned CLI Output**: Completely revamped the console layout to use minimal typography, bold section titles, and dynamic divider lines matching the title width.

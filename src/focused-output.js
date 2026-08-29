@@ -22,10 +22,12 @@ import { renderStructure } from './renderers/console-renderer.js';
 // ---------------------------------------------------------------------------
 
 const EMPTY = {
-  frameworks:  'No frameworks detected.',
-  entryPoints: 'No entry points detected.',
-  configs:     'No configuration files detected.',
-  scripts:     'No package scripts detected.',
+  frameworks:     'No frameworks detected.',
+  entryPoints:    'No entry points detected.',
+  configs:        'No configuration files detected.',
+  scripts:        'No package scripts detected.',
+  importantFiles: 'No important files detected.',
+  health:         'No project health observations available.',
 };
 
 export const FOCUSED_FLAGS = [
@@ -34,7 +36,10 @@ export const FOCUSED_FLAGS = [
   '--entry-points',
   '--structure',
   '--configs',
-  '--scripts'
+  '--scripts',
+  '--summary',
+  '--important-files',
+  '--health'
 ];
 
 /**
@@ -133,13 +138,78 @@ export function renderFocusedMode(mode, result) {
     case '--scripts': {
       const scriptsList = [];
       if (result.scripts && result.scripts.length > 0) {
-        const maxNameLen = Math.max(...result.scripts.map(s => s.name.length));
         for (const s of result.scripts) {
-          const paddedName = s.name.padEnd(maxNameLen, ' ');
-          scriptsList.push(`\x1b[97m${paddedName}\x1b[0m  \x1b[2m${s.command}\x1b[0m`);
+          const usage = s.usage || `npm run ${s.name}`;
+          scriptsList.push(`\x1b[97m${usage}\x1b[0m`);
+          if (s.description) {
+            scriptsList.push(`  \x1b[2m${s.description}\x1b[0m\n`);
+          } else {
+            scriptsList.push(`  \x1b[2m${s.command}\x1b[0m\n`);
+          }
         }
       }
+      // Remove trailing newline from last element if it exists
+      if (scriptsList.length > 0) {
+        scriptsList[scriptsList.length - 1] = scriptsList[scriptsList.length - 1].replace(/\n$/, '');
+      }
       section('Package Scripts', scriptsList, EMPTY.scripts);
+      break;
+    }
+
+    case '--summary': {
+      const p = result.projectInfo || {};
+      const lines = [
+        `Name             ${p.name || 'Unknown'}`,
+        `Type             ${result.projectType || 'Unknown'}`,
+      ];
+      if (p.runtime) lines.push(`Runtime          ${p.runtime}`);
+      if (p.language) lines.push(`Language         ${p.language}`);
+      if (p.framework) lines.push(`Framework        ${p.framework}`);
+      if (p.architecture) lines.push(`Architecture     ${p.architecture}`);
+      if (result.packageManager) lines.push(`Package Manager  ${result.packageManager}`);
+      if (p.entryPoint) lines.push(`Entry Point      ${p.entryPoint}`);
+      if (p.sourceDirectory) lines.push(`Source Directory ${p.sourceDirectory}`);
+      
+      lines.push(`Files            ${result.flatFiles ? result.flatFiles.length : 0}`);
+      lines.push(`Folders          ${result.totalFolders || 0}`);
+      
+      section('Project Summary', lines, 'No summary available.');
+      break;
+    }
+
+    case '--important-files': {
+      const items = [];
+      if (result.importantFiles && result.importantFiles.length > 0) {
+        const top10 = result.importantFiles.slice(0, 10);
+        top10.forEach((f, idx) => {
+          items.push(`${idx + 1}. \x1b[97m${f.path}\x1b[0m`);
+          items.push(`   \x1b[2m${f.reason}\x1b[0m\n`);
+        });
+        // Remove trailing newline
+        if (items.length > 0) {
+          items[items.length - 1] = items[items.length - 1].replace(/\n$/, '');
+        }
+      }
+      section('Important Files', items, EMPTY.importantFiles);
+      break;
+    }
+
+    case '--health': {
+      const items = [];
+      if (result.health && result.health.length > 0) {
+        for (const h of result.health) {
+          let icon = 'ℹ';
+          if (h.status === 'pass') icon = '✓';
+          else if (h.status === 'warning') icon = '⚠';
+          
+          let color = '\x1b[97m';
+          if (h.status === 'pass') color = '\x1b[32m';
+          else if (h.status === 'warning') color = '\x1b[33m';
+          
+          items.push(`${color}${icon}\x1b[0m ${h.message}`);
+        }
+      }
+      section('Project Health', items, EMPTY.health);
       break;
     }
   }

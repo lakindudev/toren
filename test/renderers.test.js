@@ -21,27 +21,42 @@ function captureStdout(fn) {
 }
 
 const normalRepo = {
-  rootPath: '/path/to/project',
+  rootPath: '../../../../../path/to/project',
   projectType: 'Node.js / JavaScript',
   entryPoints: ['src/index.js'],
   configs: ['package.json'],
   scripts: [{ name: 'start', command: 'node src/index.js' }],
-  tree: { type: 'directory', name: 'project', children: [] },
-  flatFiles: ['src/index.js', 'package.json'],
+  packageManager: 'npm',
+  projectInfo: { name: 'toren', runtime: 'Node.js' },
+  health: [{ id: 'readme', status: 'pass', message: 'README found' }],
+  importantFiles: [{ path: 'package.json', reason: 'Defines dependencies' }],
+  tree: {
+    type: 'directory',
+    name: 'project',
+    children: [
+      { type: 'file', name: 'package.json' },
+      { type: 'directory', name: 'src', children: [{ type: 'file', name: 'index.js' }] }
+    ]
+  },
+  flatFiles: ['package.json', 'src/index.js'],
   totalFolders: 1,
-  scanDurationMs: 15,
+  scanDurationMs: 15.4,
 };
 
 const emptyRepo = {
-  rootPath: '/empty',
+  rootPath: '../../../../../path/to/project',
   projectType: 'Unknown',
   entryPoints: [],
   configs: [],
   scripts: [],
-  tree: { type: 'directory', name: 'empty', children: [] },
+  packageManager: null,
+  projectInfo: null,
+  health: [],
+  importantFiles: [],
+  tree: { type: 'directory', name: 'project', children: [] },
   flatFiles: [],
   totalFolders: 0,
-  scanDurationMs: 1,
+  scanDurationMs: 2.1,
 };
 
 const noFrameworks = { ...normalRepo, projectType: 'Unknown' };
@@ -67,7 +82,11 @@ const unicodeFilenames = {
 const htmlSensitive = {
   ...normalRepo,
   entryPoints: ['src/<script>alert("xss")</script>.js'],
-  flatFiles: ['src/<script>alert("xss")</script>.js', 'package.json']
+  flatFiles: ['src/<script>alert("xss")</script>.js', 'package.json'],
+  scripts: [{ name: '<img src=x onerror=alert(1)>', command: 'node "<foo>"', description: '<b>test</b>', usage: 'npm run <script>' }],
+  projectInfo: { name: '<script>alert(1)</script>', runtime: '<script>' },
+  health: [{ id: 'xss', status: 'pass', message: '<script>alert(1)</script>' }],
+  importantFiles: [{ path: '<script>', reason: '<script>' }]
 };
 
 const cases = {
@@ -136,8 +155,9 @@ describe('Renderers Unit Tests', () => {
       
       if (name === 'Normal repository') {
         assert.match(output, /- src\/index\.js/);
-        assert.match(output, /- package\.json/);
-        assert.match(output, /- start: node src\/index\.js/);
+        assert.match(output, /## Scripts/);
+        assert.match(output, /- \*\*npm run start\*\*/);
+        assert.match(output, /`node src\/index\.js`/);
       }
     });
 

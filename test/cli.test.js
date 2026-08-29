@@ -344,7 +344,7 @@ describe('JSON Output Consistency', () => {
   // Canonical property order that every JSON response must follow.
   const PROPERTY_ORDER = [
     'meta', 'project', 'frameworks', 'entryPoints',
-    'configs', 'scripts', 'statistics', 'structure', 'summary',
+    'configs', 'scripts', 'importantFiles', 'health', 'statistics', 'structure', 'summary',
   ];
 
   function getJSON(args) {

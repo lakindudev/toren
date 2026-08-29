@@ -23,6 +23,9 @@ import path from 'node:path';
 import { detectConfigs }         from '../detectors/config-detector.js';
 import { detectScripts }         from '../detectors/script-detector.js';
 import { detectPackageManager }  from '../detectors/package-manager-detector.js';
+import { detectImportantFiles }  from '../detectors/important-files-detector.js';
+import { detectProjectInfo }     from '../detectors/project-info-detector.js';
+import { detectHealth }          from '../detectors/health-detector.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -479,13 +482,15 @@ export function scan(targetPath, options = {}) {
   let scripts = [];
   /** @type {string|null} */
   let packageManager = null;
-
+  let importantFiles = [];
+  let projectInfo = null;
+  let health = [];
 
   const startTime   = performance.now();
   let tree;
   let projectType = 'Unknown';
   let totalFolders = 0;
-
+  
   if (stat.isDirectory()) {
     tree = walkDirectory(rootPath, rootPath, flatFiles, includeHidden, maxFiles);
     projectType = detectProjectType(rootPath);
@@ -495,6 +500,9 @@ export function scan(targetPath, options = {}) {
     configs = detectConfigs(flatFiles).configs;
     packageManager = detectPackageManager(flatFiles).packageManager;
     scripts = detectScripts(rootPath, packageManager).scripts;
+    importantFiles = detectImportantFiles({ flatFiles, projectType, entryPoints, configs }).importantFiles;
+    projectInfo = detectProjectInfo({ rootPath, projectType, flatFiles, entryPoints, packageManager, scripts }).projectInfo;
+    health = detectHealth({ flatFiles, configs, importantFiles, scripts, projectType }).health;
   } else if (stat.isFile()) {
     const relFilePath = toPosix(path.basename(rootPath));
     tree = {
@@ -514,6 +522,9 @@ export function scan(targetPath, options = {}) {
     configs = detectConfigs(flatFiles).configs;
     packageManager = detectPackageManager(flatFiles).packageManager;
     scripts = detectScripts(path.dirname(rootPath), packageManager).scripts;
+    importantFiles = detectImportantFiles({ flatFiles, projectType, entryPoints, configs }).importantFiles;
+    projectInfo = detectProjectInfo({ rootPath, projectType, flatFiles, entryPoints, packageManager, scripts }).projectInfo;
+    health = detectHealth({ flatFiles, configs, importantFiles, scripts, projectType }).health;
   } else {
     const err = new Error(`Path is neither a file nor a directory: ${rootPath}`);
     err.title = 'Unsupported path type';
@@ -532,6 +543,9 @@ export function scan(targetPath, options = {}) {
     configs,
     scripts,
     packageManager,
+    importantFiles,
+    projectInfo,
+    health,
     tree,
     flatFiles,
     totalFolders,

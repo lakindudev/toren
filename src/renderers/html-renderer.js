@@ -804,6 +804,118 @@ function renderConfigurationFiles(configs) {
  * @param {Array<{name: string, command: string}>} scripts
  * @returns {string}
  */
+function renderProjectInfo(projectInfo, packageManager) {
+  const rows = [];
+  if (projectInfo?.name) rows.push(['Name', projectInfo.name]);
+  if (packageManager) rows.push(['Package Manager', packageManager]);
+  if (projectInfo?.runtime) rows.push(['Runtime', projectInfo.runtime]);
+  if (projectInfo?.language) rows.push(['Language', projectInfo.language]);
+  if (projectInfo?.architecture) rows.push(['Architecture', projectInfo.architecture]);
+  if (projectInfo?.framework) rows.push(['Framework', projectInfo.framework]);
+  if (projectInfo?.entryPoint) rows.push(['Entry Point', projectInfo.entryPoint]);
+  if (projectInfo?.sourceDirectory) rows.push(['Source Directory', projectInfo.sourceDirectory]);
+
+  if (rows.length === 0) return '';
+
+  const rowsHTML = rows.map(([prop, value]) => `
+    <tr>
+      <td>${esc(prop)}</td>
+      <td class="val-plain">${esc(value)}</td>
+    </tr>`).join('');
+
+  return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.info()}</div>
+      <h2 class="section-title">Project Info</h2>
+    </div>
+    <div class="section-body" style="padding:0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th style="text-align:right">Value</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+function renderImportantFiles(importantFiles) {
+  const count = importantFiles.length;
+
+  const body = count === 0
+    ? `<p class="empty-msg" style="padding: 1.5rem">No important files detected.</p>`
+    : `<table class="data-table">
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${importantFiles.map(f => `
+            <tr>
+              <td><code>${esc(f.path)}</code></td>
+              <td class="val-plain">${esc(f.reason)}</td>
+            </tr>`).join('')}
+        </tbody>
+       </table>`;
+
+  const countBadge = count > 0
+    ? `<span class="section-count">${count} found</span>`
+    : '';
+
+  return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.file()}</div>
+      <h2 class="section-title">Important Files</h2>
+      ${countBadge}
+    </div>
+    <div class="section-body" style="padding:0">
+      ${body}
+    </div>
+  </section>`;
+}
+
+function renderProjectHealth(health) {
+  const count = health.length;
+
+  const body = count === 0
+    ? `<p class="empty-msg" style="padding: 1.5rem">No project health observations available.</p>`
+    : `<ul class="entry-list">
+        ${health.map(h => {
+          let emoji = 'ℹ';
+          if (h.status === 'pass') emoji = '✓';
+          else if (h.status === 'warning') emoji = '⚠';
+          return `
+          <li class="entry-item">
+            <span>${esc(emoji)}</span>
+            ${esc(h.message)}
+          </li>`;
+        }).join('')}
+       </ul>`;
+
+  const countBadge = count > 0
+    ? `<span class="section-count">${count} observations</span>`
+    : '';
+
+  return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.info()}</div>
+      <h2 class="section-title">Project Health</h2>
+      ${countBadge}
+    </div>
+    <div class="section-body">
+      ${body}
+    </div>
+  </section>`;
+}
+
 function renderPackageScripts(scripts) {
   const count = scripts.length;
 
@@ -812,16 +924,21 @@ function renderPackageScripts(scripts) {
     : `<table class="data-table">
         <thead>
           <tr>
-            <th>Script</th>
+            <th>Usage</th>
+            <th>Description</th>
             <th>Command</th>
           </tr>
         </thead>
         <tbody>
-          ${scripts.map(s => `
+          ${scripts.map(s => {
+            const usage = s.usage || `npm run ${s.name}`;
+            return `
             <tr>
-              <td><code>${esc(s.name)}</code></td>
+              <td><code>${esc(usage)}</code></td>
+              <td class="val-plain">${esc(s.description || '')}</td>
               <td class="val-plain"><code>${esc(s.command)}</code></td>
-            </tr>`).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
        </table>`;
 
@@ -836,7 +953,9 @@ function renderPackageScripts(scripts) {
       <h2 class="section-title">Package Scripts</h2>
       ${countBadge}
     </div>
-    <div class="section-body" style="padding:0">${body}</div>
+    <div class="section-body" style="padding:0">
+      ${body}
+    </div>
   </section>`;
 }
 
@@ -966,7 +1085,7 @@ function renderFooter() {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles, tree } = result;
+  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles, tree, importantFiles = [], health = [], projectInfo, packageManager } = result;
 
   const cwd      = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -990,6 +1109,9 @@ export function render(result, options = {}) {
 
     <main>
       ${renderSummaryCards(result)}
+      ${renderProjectInfo(projectInfo, packageManager)}
+      ${renderProjectHealth(health)}
+      ${renderImportantFiles(importantFiles)}
       ${renderFrameworks(projectType)}
       ${renderEntryPoints(entryPoints)}
       ${renderConfigurationFiles(configs)}

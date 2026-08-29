@@ -177,17 +177,28 @@ function sectionTitle(out) {
  * @param {string} relRoot
  */
 function sectionSummary(out, result, relRoot) {
-  const { projectType, flatFiles, totalFolders } = result;
+  const { projectType, flatFiles, totalFolders, packageManager, projectInfo } = result;
 
   out.push('');
   out.push('## Project');
   out.push('');
-  out.push(markdownTable([
-    ['Project Type', projectType],
-    ['Scan Path',    relRoot],
-    ['Total Files',  String(flatFiles.length)],
-    ['Total Folders', String(totalFolders)],
-  ]));
+  
+  const rows = [];
+  if (projectInfo && projectInfo.name) rows.push(['Name', projectInfo.name]);
+  rows.push(['Project Type', projectType]);
+  if (packageManager) rows.push(['Package Manager', packageManager]);
+  if (projectInfo && projectInfo.runtime) rows.push(['Runtime', projectInfo.runtime]);
+  if (projectInfo && projectInfo.language) rows.push(['Language', projectInfo.language]);
+  if (projectInfo && projectInfo.architecture) rows.push(['Architecture', projectInfo.architecture]);
+  if (projectInfo && projectInfo.framework) rows.push(['Framework', projectInfo.framework]);
+  if (projectInfo && projectInfo.entryPoint) rows.push(['Entry Point', projectInfo.entryPoint]);
+  if (projectInfo && projectInfo.sourceDirectory) rows.push(['Source Directory', projectInfo.sourceDirectory]);
+
+  rows.push(['Scan Path', relRoot]);
+  rows.push(['Total Files', String(flatFiles.length)]);
+  rows.push(['Total Folders', String(totalFolders)]);
+
+  out.push(markdownTable(rows));
 }
 
 /**
@@ -230,7 +241,7 @@ function sectionConfigurationFiles(out, configs) {
 
 /**
  * @param {string[]} out
- * @param {Array<{name: string, command: string}>} scripts
+ * @param {Array<{name: string, command: string, description: string, usage: string}>} scripts
  */
 function sectionPackageScripts(out, scripts) {
   out.push('');
@@ -241,7 +252,54 @@ function sectionPackageScripts(out, scripts) {
     out.push('No package scripts detected.');
   } else {
     for (const s of scripts) {
-      out.push(`- ${s.name}: ${s.command}`);
+      const usage = s.usage || `npm run ${s.name}`;
+      out.push(`- **${usage}**`);
+      if (s.description) {
+        out.push(`  ${s.description}  `);
+        out.push(`  \`${s.command}\``);
+      } else {
+        out.push(`  \`${s.command}\``);
+      }
+    }
+  }
+}
+
+/**
+ * @param {string[]} out
+ * @param {Array<{path: string, reason: string}>} importantFiles
+ */
+function sectionImportantFiles(out, importantFiles) {
+  out.push('');
+  out.push('## Important Files');
+  out.push('');
+
+  if (importantFiles.length === 0) {
+    out.push('No important files detected.');
+  } else {
+    for (const f of importantFiles) {
+      out.push(`- **${f.path}**  `);
+      out.push(`  ${f.reason}`);
+    }
+  }
+}
+
+/**
+ * @param {string[]} out
+ * @param {Array<{id: string, status: string, message: string}>} health
+ */
+function sectionProjectHealth(out, health) {
+  out.push('');
+  out.push('## Project Health');
+  out.push('');
+
+  if (health.length === 0) {
+    out.push('No project health observations available.');
+  } else {
+    for (const h of health) {
+      let icon = 'ℹ';
+      if (h.status === 'pass') icon = '✓';
+      else if (h.status === 'warning') icon = '⚠';
+      out.push(`- ${icon} ${h.message}`);
     }
   }
 }
@@ -315,7 +373,7 @@ function sectionStatistics(out, result) {
  * @param {{ cwd?: string }} [options]
  */
 export function render(result, options = {}) {
-  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles, tree } = result;
+  const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles, tree, importantFiles = [], health = [] } = result;
 
   const cwd     = options.cwd ?? process.cwd();
   const relRoot  = path.relative(cwd, rootPath) || '.';
@@ -326,6 +384,8 @@ export function render(result, options = {}) {
 
   sectionTitle(out);
   sectionSummary(out, result, relRoot);
+  sectionProjectHealth(out, health);
+  sectionImportantFiles(out, importantFiles);
   sectionFrameworks(out, projectType);
   sectionEntryPoints(out, entryPoints);
   sectionConfigurationFiles(out, configs);
