@@ -2,7 +2,7 @@
 
 > The fastest way to understand any project structure. A zero-dependency codebase scanner CLI for modern developers.
 
-[![npm version](https://img.shields.io/npm/v/@lakindu_perera/toren.svg)](https://www.npmjs.com/package/@lakindu_perera/toren)
+[![npm version](https://img.shields.io/npm/v/@lakindudev/toren.svg)](https://www.npmjs.com/package/@lakindudev/toren)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-success.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -36,7 +36,7 @@ Built with zero external dependencies, this **Node.js repository explorer** is t
 Install Toren globally via npm to make the **repository inspection CLI** available anywhere on your machine:
 
 ```bash
-npm install -g @lakindu_perera/toren
+npm install -g @lakindudev/toren
 ```
 
 **Requirements:** Node.js 18.0.0 or higher.
@@ -346,7 +346,7 @@ Toren uses **automated npm publishing via GitHub Actions** and [npm Trusted Publ
        ✔ npm pack --dry-run
        ✔ npm publish --access public --provenance
 
-9. @lakindu_perera/toren@1.0.8 is live on npmjs.com.
+9. @lakindudev/toren@1.0.8 is live on npmjs.com.
 ```
 
 ### If the workflow fails
