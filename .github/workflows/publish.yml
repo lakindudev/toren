@@ -1,0 +1,146 @@
+# Toren — Automated npm Publish Workflow
+#
+# Trigger: GitHub Release → published
+#
+# Sequence:
+#   1. Checkout repository
+#   2. Setup Node.js 24 with npm registry
+#   3. npm ci  (deterministic install)
+#   4. npm test  (all 233 tests must pass)
+#   5. npm run lint  (syntax check must pass)
+#   6. Validate release tag format  (must be vX.Y.Z)
+#   7. Verify release tag matches package.json version
+#   8. npm pack --dry-run  (verify package contents)
+#   9. npm publish --access public  (Trusted Publishing / OIDC)
+#
+# Authentication: npm Trusted Publishing (OIDC) — no NPM_TOKEN stored.
+# The npm package @lakindu_perera/toren must have this workflow configured
+# as a Trusted Publisher on npmjs.com before this workflow will succeed.
+#
+# Repository: https://github.com/lakindudev/toren
+
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+
+# Trusted Publishing requires id-token: write to exchange a GitHub OIDC
+# token for a short-lived npm token.  contents: read is the minimum
+# required to check out the repository.  No other permissions are needed.
+permissions:
+  contents: read
+  id-token: write
+
+# Prevent duplicate publish runs for the same release.
+# cancel-in-progress: false ensures an already-running publish is not
+# killed mid-flight if the event fires twice.
+concurrency:
+  group: npm-publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Test and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js setup ───────────────────────────────────────────────────
+      # registry-url configures .npmrc so that the OIDC token exchange works.
+      # package-manager-cache: false — Toren has zero runtime dependencies so
+      # caching the npm store adds no value and avoids cache pollution.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      # ── 3. Deterministic install ───────────────────────────────────────────
+      # npm ci uses package-lock.json (lockfileVersion 3) for a fully
+      # reproducible install.  Toren has no runtime dependencies so this
+      # installs only devDependencies (none declared — effectively a no-op
+      # beyond verifying the lockfile is intact).
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4. Tests ───────────────────────────────────────────────────────────
+      # All 233 tests must pass.  A single failure halts the workflow and
+      # prevents publishing.
+      - name: Run tests
+        run: npm test
+
+      # ── 5. Lint ────────────────────────────────────────────────────────────
+      # Uses node --check on every source file.  Any syntax error halts the
+      # workflow.  The lint script is required (not --if-present) because
+      # Toren defines it as a mandatory script in package.json.
+      - name: Run lint
+        run: npm run lint
+
+      # ── 6. Validate release tag format ────────────────────────────────────
+      # Accepts vMAJOR.MINOR.PATCH and vMAJOR.MINOR.PATCH-prerelease.N
+      # (e.g. v1.0.7, v1.1.0, v2.0.0, v1.1.0-beta.1).
+      # Rejects tags like: release-1.0.7, toren-v1, latest, test.
+      - name: Validate release tag format
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          echo "Release tag: $TAG"
+
+          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "ERROR: Tag '$TAG' is not a valid Toren release tag."
+            echo "Expected format: vMAJOR.MINOR.PATCH  (e.g. v1.0.7, v1.1.0-beta.1)"
+            echo "Rejected formats: release-1.0.7, toren-v1, latest, test"
+            exit 1
+          fi
+
+          echo "Tag format is valid."
+
+      # ── 7. Verify release tag matches package.json version ─────────────────
+      # Strips the leading 'v' from the GitHub release tag and compares it
+      # with the version field in package.json.  A mismatch stops the
+      # workflow before npm publish runs.
+      #
+      # Example (PASS):  tag = v1.0.7  →  1.0.7 == 1.0.7
+      # Example (FAIL):  tag = v1.0.7  →  1.0.7 != 1.0.6  (package.json stale)
+      - name: Verify release version matches package.json
+        shell: bash
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          RELEASE_VERSION="${GITHUB_REF_NAME#v}"
+
+          echo "package.json version : $PACKAGE_VERSION"
+          echo "GitHub release version: $RELEASE_VERSION"
+
+          if [ "$PACKAGE_VERSION" != "$RELEASE_VERSION" ]; then
+            echo ""
+            echo "ERROR: Version mismatch — publishing aborted."
+            echo "  package.json declares : $PACKAGE_VERSION"
+            echo "  GitHub release tag is  : ${GITHUB_REF_NAME}  (stripped: $RELEASE_VERSION)"
+            echo ""
+            echo "Fix: update package.json to $RELEASE_VERSION, commit, and re-create the release."
+            exit 1
+          fi
+
+          echo "Version match confirmed: $PACKAGE_VERSION"
+
+      # ── 8. Dry-run pack ────────────────────────────────────────────────────
+      # Verifies the files array in package.json produces a valid tarball
+      # without actually uploading anything.  Confirms bin/, src/, LICENSE,
+      # and README.md are included.
+      - name: Verify package contents (dry-run)
+        run: npm pack --dry-run
+
+      # ── 9. Publish ─────────────────────────────────────────────────────────
+      # Uses npm Trusted Publishing (OIDC).  The id-token: write permission
+      # above allows GitHub to mint a short-lived OIDC token which npm
+      # exchanges for a publish-scoped token automatically.
+      # No NPM_TOKEN, no long-lived credentials, nothing stored in secrets.
+      # --provenance attaches a signed build provenance statement to the
+      # package (recommended for supply-chain transparency).
+      - name: Publish to npm
+        run: npm publish --access public --provenance

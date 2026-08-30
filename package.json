@@ -10,8 +10,12 @@
     "bin",
     "src",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "node bin/toren.js",
     "test": "node --test",

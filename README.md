@@ -308,6 +308,60 @@ Contributions to improve this codebase analyzer CLI are always welcome!
 
 ---
 
+## Maintainer: Releasing a New Version
+
+Toren uses **automated npm publishing via GitHub Actions** and [npm Trusted Publishing (OIDC)](https://docs.npmjs.com/generating-provenance-statements).  
+**Do not run `npm publish` manually** — GitHub Actions owns the publish step.
+
+### Release checklist
+
+```text
+1. Implement changes on a feature branch.
+
+2. Update the version in package.json:
+       "version": "1.0.8"
+
+3. Run tests and lint locally:
+       npm test
+       npm run lint
+
+4. Commit the version bump and any other changes:
+       git commit -m "chore: release v1.0.8"
+
+5. Open a Pull Request → merge to main.
+
+6. On GitHub, create a new Release:
+       Tag:   v1.0.8        ← must match package.json exactly (with leading v)
+       Title: v1.0.8
+       Body:  paste CHANGELOG.md entry
+
+7. Click "Publish Release".
+
+8. GitHub Actions runs automatically:
+       ✔ npm ci
+       ✔ npm test  (all 233+ tests must pass)
+       ✔ npm run lint
+       ✔ tag format validated  (vX.Y.Z)
+       ✔ tag v1.0.8 == package.json 1.0.8
+       ✔ npm pack --dry-run
+       ✔ npm publish --access public --provenance
+
+9. @lakindu_perera/toren@1.0.8 is live on npmjs.com.
+```
+
+### If the workflow fails
+
+| Failure step | Cause | Fix |
+|---|---|---|
+| Run tests | A test is failing | Fix the test, push, re-create release |
+| Run lint | Syntax error in source | Fix lint error, push, re-create release |
+| Validate tag format | Tag is not `vX.Y.Z` | Delete the release, re-create with correct tag |
+| Verify version matches | `package.json` not bumped | Update `package.json`, push, re-create release |
+| Verify package contents | `files` array misconfigured | Fix `package.json`, push, re-create release |
+| Publish to npm | Trusted Publisher not configured | Follow the npm Trusted Publisher setup in `.github/workflows/publish.yml` header |
+
+---
+
 ## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
