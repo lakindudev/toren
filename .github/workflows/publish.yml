@@ -135,11 +135,9 @@ jobs:
         run: npm pack --dry-run
 
       # ── 9. Publish ─────────────────────────────────────────────────────────
-      # Uses npm Trusted Publishing (OIDC).  The id-token: write permission
-      # above allows GitHub to mint a short-lived OIDC token which npm
-      # exchanges for a publish-scoped token automatically.
-      # No NPM_TOKEN, no long-lived credentials, nothing stored in secrets.
-      # --provenance attaches a signed build provenance statement to the
-      # package (recommended for supply-chain transparency).
+      # Using a traditional NPM_TOKEN to bypass the OIDC permissions bug.
+      # The token is stored securely in GitHub Repository Secrets.
       - name: Publish to npm
         run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
