@@ -14,7 +14,7 @@
 #   9. npm publish --access public  (Trusted Publishing / OIDC)
 #
 # Authentication: npm Trusted Publishing (OIDC) — no NPM_TOKEN stored.
-# The npm package @lakindu_perera/toren must have this workflow configured
+# The npm package @lakindudev/toren must have this workflow configured
 # as a Trusted Publisher on npmjs.com before this workflow will succeed.
 #
 # Repository: https://github.com/lakindudev/toren
