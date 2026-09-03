@@ -75,6 +75,7 @@ Fast Repository Discovery CLI
   --important-files   Show important files only
   --health            Show project health observations only
   --include-hidden    Include hidden files and folders
+  --all, -a           Show complete directory tree without limits
   --max-files <n>     Set scan file limit
   --doctor            Run CLI diagnostics
   --uninstall         Remove Toren global installation
@@ -178,6 +179,9 @@ function parseArgs() {
   // ── Hidden files ────────────────────────────────────────────────────────
   const includeHidden = args.includes('--include-hidden');
 
+  // ── Show all files ──────────────────────────────────────────────────────
+  const showAllFiles = args.includes('--all') || args.includes('-a');
+
   // ── Target path ─────────────────────────────────────────────────────────
   // Build the set of tokens that are consumed as values by named flags so
   // we don't accidentally treat them as the positional path argument.
@@ -226,6 +230,7 @@ function parseArgs() {
     '--json',
     ...FOCUSED_FLAGS,
     '--include-hidden',
+    '--all', '-a',
     '--max-files',
   ]);
 
@@ -243,7 +248,7 @@ function parseArgs() {
     return { action: 'exit', code: 1 };
   }
 
-  return { action: 'scan', target, format, includeHidden, maxFiles, focusedMode };
+  return { action: 'scan', target, format, includeHidden, showAllFiles, maxFiles, focusedMode };
 }
 
 // ---------------------------------------------------------------------------
@@ -294,7 +299,7 @@ function assertValidFormat(format: string): void {
     if (parsed.focusedMode) {
       renderFocusedMode(parsed.focusedMode as string, result);
     } else {
-      render(result, { cwd: process.cwd() });
+      render(result, { cwd: process.cwd(), showAllFiles: parsed.showAllFiles as boolean });
     }
   } catch (err: any) {
     // Render errors in the requested format where possible.

@@ -223,7 +223,7 @@ function printBanner(): void {
  * @param {import('../scanner/scan.js').ScanResult} result
  * @param {{ cwd?: string }} [options]
  */
-export function render(result: ScanResult, options: { cwd?: string } = {}): void {
+export function render(result: ScanResult, options: { cwd?: string; showAllFiles?: boolean } = {}): void {
   const {
     rootPath,
     projectType,
@@ -352,18 +352,21 @@ export function render(result: ScanResult, options: { cwd?: string } = {}): void
 
   console.log(paint(`${tree.name || '.'}${path.sep}`, C.bold, C.blue));
 
+  const limit = options.showAllFiles ? Infinity : PREVIEW_LIMIT;
+  const maxDepth = options.showAllFiles ? Infinity : 4;
+
   const counter  = { count: 0, maxReached: false };
   const children = tree.children ?? [];
   for (let i = 0; i < children.length; i++) {
-    if (counter.count >= PREVIEW_LIMIT) {
+    if (counter.count >= limit) {
       console.log(`${CHARS.corner}${paint('...', C.dim)}`);
       break;
     }
-    renderTree(children[i], '', i === children.length - 1, counter);
+    renderTree(children[i], '', i === children.length - 1, counter, limit, 0, maxDepth);
     if (counter.maxReached) break;
   }
 
-  if (flatFiles.length > PREVIEW_LIMIT) {
+  if (!options.showAllFiles && flatFiles.length > PREVIEW_LIMIT) {
     const hidden = flatFiles.length - PREVIEW_LIMIT;
     console.log(paint(`… ${hidden} more file(s) not shown`, C.dim));
   }
