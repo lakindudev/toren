@@ -1,9 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { ProjectInfo, PackageManager, ScriptInfo } from '../types/index.js';
 
-/**
- * Detect project info from the scanned repository.
- */
+interface DetectProjectInfoOptions {
+  rootPath: string;
+  projectType: string;
+  flatFiles: string[];
+  entryPoints: string[];
+  packageManager: PackageManager | null;
+  scripts: ScriptInfo[];
+}
+
 export function detectProjectInfo({
   rootPath,
   projectType,
@@ -11,22 +18,24 @@ export function detectProjectInfo({
   entryPoints,
   packageManager,
   scripts
-}) {
+}: DetectProjectInfoOptions): { projectInfo: ProjectInfo } {
   const fileSet = new Set(flatFiles);
 
-  let name = null;
+  let name: string | null = null;
   const pkgPath = path.join(rootPath, 'package.json');
   try {
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-      if (pkg.name) name = pkg.name;
+      if (pkg && typeof pkg === 'object' && 'name' in pkg && typeof pkg.name === 'string') {
+        name = pkg.name;
+      }
     }
   } catch {}
   if (!name) {
     name = path.basename(rootPath) || null;
   }
 
-  let runtime = null;
+  let runtime: string | null = null;
   const pt = projectType.toLowerCase();
   if (pt.includes('node') || fileSet.has('package.json')) runtime = 'Node.js';
   else if (pt.includes('python')) runtime = 'Python';
@@ -37,7 +46,7 @@ export function detectProjectInfo({
   else if (pt.includes('php') || pt.includes('composer')) runtime = 'PHP';
   else if (pt.includes('elixir') || pt.includes('phoenix')) runtime = 'Erlang / BEAM';
 
-  let language = null;
+  let language: string | null = null;
   if (fileSet.has('tsconfig.json') || pt.includes('angular')) {
     language = 'TypeScript';
   } else if (fileSet.has('package.json') && !fileSet.has('tsconfig.json')) {
@@ -50,12 +59,12 @@ export function detectProjectInfo({
   else if (pt.includes('php')) language = 'PHP';
   else if (pt.includes('elixir')) language = 'Elixir';
 
-  let framework = null;
+  let framework: string | null = null;
   if (projectType && projectType !== 'Unknown') {
     framework = projectType;
   }
 
-  let architecture = null;
+  let architecture: string | null = null;
   if (pt.includes('next')) {
     const hasApp = Array.from(fileSet).some(f => f.startsWith('app/'));
     const hasPages = Array.from(fileSet).some(f => f.startsWith('pages/'));
@@ -66,7 +75,7 @@ export function detectProjectInfo({
 
   const entryPoint = entryPoints.length > 0 ? entryPoints[0] : null;
 
-  let sourceDirectory = null;
+  let sourceDirectory: string | null = null;
   if (entryPoint) {
     if (entryPoint.startsWith('src/')) sourceDirectory = 'src';
     else if (entryPoint.startsWith('app/')) sourceDirectory = 'app';

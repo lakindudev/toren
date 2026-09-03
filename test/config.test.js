@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
-import { detectConfigs } from '../src/detectors/config-detector.js';
+import { detectConfigs } from '../dist/detectors/config-detector.js';
 
 describe('Toren v1.0.5 - Configuration Discovery', () => {
   test('React project: package.json, vite.config.ts, tsconfig.json', () => {
@@ -55,7 +55,7 @@ describe('Toren v1.0.5 - Configuration Discovery', () => {
 
   test('CLI: toren --configs', () => {
     // Run CLI on the root directory
-    const output = execSync('node bin/toren.js . --configs', { encoding: 'utf-8' });
+    const output = execSync('node dist/cli/toren.js . --configs', { encoding: 'utf-8' });
     assert.match(output, /Configuration Files/);
     assert.match(output, /package\.json/);
   });

@@ -70,6 +70,15 @@ jobs:
       # ── 4. Tests ───────────────────────────────────────────────────────────
       # All 233 tests must pass.  A single failure halts the workflow and
       # prevents publishing.
+      # ── 3a. Typecheck ──────────────────────────────────────────────────────
+      - name: Run typecheck
+        run: npm run typecheck
+
+      # ── 3b. Build ──────────────────────────────────────────────────────────
+      - name: Build TypeScript
+        run: npm run build
+
+
       - name: Run tests
         run: npm test
 

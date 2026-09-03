@@ -1,3 +1,4 @@
+import type { ScanResult, DirNode, TreeNode, FileNode, ScriptInfo, ImportantFile, HealthObservation } from "../types/index.js";
 /**
  * @fileoverview Toren — Console Renderer
  *
@@ -48,7 +49,7 @@ const PREVIEW_LIMIT = 20;
 // Cross-platform capability detection
 // ---------------------------------------------------------------------------
 
-function shouldEnableColors() {
+function shouldEnableColors(): boolean {
   if ('FORCE_COLOR' in process.env) {
     return process.env.FORCE_COLOR !== '0' && process.env.FORCE_COLOR !== 'false';
   }
@@ -58,7 +59,7 @@ function shouldEnableColors() {
   return true;
 }
 
-function isUnicodeSupported() {
+function isUnicodeSupported(): boolean {
   if (process.platform !== 'win32') {
     return process.env.TERM !== 'linux';
   }
@@ -95,7 +96,7 @@ const CHARS = {
  * @param {...string} codes
  * @returns {string}
  */
-function paint(text, ...codes) {
+function paint(text: string, ...codes: string[]): string {
   if (!useColors) return text;
   return `${codes.join('')}${text}${C.reset}`;
 }
@@ -104,7 +105,7 @@ function paint(text, ...codes) {
  * Print a titled section header followed by a matched-length divider.
  * @param {string} title
  */
-function section(title) {
+function section(title: string): void {
   const cleanTitle = title.replace(/\x1b\[[0-9;]*m/g, '');
   console.log(paint(title, C.bold, C.white));
   console.log(paint(CHARS.dash.repeat(cleanTitle.length), C.dim));
@@ -117,7 +118,7 @@ function section(title) {
  * @param {string} value  - Right-hand value
  * @param {string} [valueColor] - Optional ANSI code(s) for the value
  */
-function row(label, value, ...valueCodes) {
+function row(label: string, value: string, ...valueCodes: string[]): void {
   const coloured = valueCodes.length ? paint(value, ...valueCodes) : value;
   console.log(`${paint(label, C.dim)} ${coloured}`);
 }
@@ -128,7 +129,7 @@ function row(label, value, ...valueCodes) {
  * @param {number} ms
  * @returns {string}
  */
-function formatDuration(ms) {
+function formatDuration(ms: number): string {
   if (ms < 1)     return '< 1 ms';
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
   return `${Math.round(ms)} ms`;
@@ -142,7 +143,7 @@ function formatDuration(ms) {
  * @param {string} projectType
  * @returns {string[]}
  */
-function deriveFrameworks(projectType) {
+function deriveFrameworks(projectType: string): string[] {
   if (!projectType || projectType === 'Unknown') return [];
   return [projectType];
 }
@@ -163,7 +164,7 @@ function deriveFrameworks(projectType) {
  * @param {number}            depth    - Current depth
  * @param {number}            maxDepth - Max recursion depth
  */
-function renderTree(node, prefix, isLast, counter, limit = PREVIEW_LIMIT, depth = 0, maxDepth = 4) {
+function renderTree(node: DirNode | FileNode | TreeNode, prefix: string, isLast: boolean, counter: { count: number, maxReached?: boolean }, limit = PREVIEW_LIMIT, depth = 0, maxDepth = 4): void {
   if (counter.maxReached) return;
   if (depth >= maxDepth) return;
 
@@ -202,7 +203,7 @@ function renderTree(node, prefix, isLast, counter, limit = PREVIEW_LIMIT, depth 
 // Banner  (private)
 // ---------------------------------------------------------------------------
 
-function printBanner() {
+function printBanner(): void {
   const name    = paint('Toren', C.bold, C.cyan);
   const version = paint(`v${pkg.version}`, C.dim);
   const tagline = paint('Codebase Onboarding Intelligence', C.dim);
@@ -222,7 +223,7 @@ function printBanner() {
  * @param {import('../scanner/scan.js').ScanResult} result
  * @param {{ cwd?: string }} [options]
  */
-export function render(result, options = {}) {
+export function render(result: ScanResult, options: { cwd?: string } = {}): void {
   const {
     rootPath,
     projectType,
@@ -378,7 +379,7 @@ export function render(result, options = {}) {
  * 
  * @param {import('../scanner/scan.js').ScanResult} result
  */
-export function renderStructure(result) {
+export function renderStructure(result: ScanResult): void {
   const { tree, flatFiles } = result;
 
   section('Folder Structure');

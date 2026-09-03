@@ -1,3 +1,4 @@
+import type { ScanResult, DirNode, TreeNode, FileNode, ScriptInfo, ImportantFile, HealthObservation } from "../types/index.js";
 /**
  * @fileoverview Toren — JSON Renderer
  *
@@ -40,7 +41,11 @@ const pkg     = require('../../package.json');
  * @param {import('../scanner/scan.js').DirNode | import('../scanner/scan.js').FileNode} node
  * @returns {{ type: 'folder'|'file', name: string, children?: object[] }}
  */
-function mapTree(node) {
+type JsonTreeNode =
+  | { type: 'folder'; name: string; children: JsonTreeNode[] }
+  | { type: 'file'; name: string };
+
+function mapTree(node: DirNode | FileNode | TreeNode): JsonTreeNode {
   if (node.type === 'directory') {
     return {
       type:     'folder',
@@ -66,7 +71,7 @@ function mapTree(node) {
  * @param {string} projectType
  * @returns {string[]}
  */
-function deriveFrameworks(projectType) {
+function deriveFrameworks(projectType: string): string[] {
   if (!projectType || projectType === 'Unknown') return [];
   return [projectType];
 }
@@ -81,7 +86,7 @@ function deriveFrameworks(projectType) {
  * @param {import('../scanner/scan.js').ScanResult} result
  * @param {{ cwd?: string }} [options]
  */
-export function render(result, options = {}) {
+export function render(result: ScanResult, options: { cwd?: string } = {}): void {
   const {
     rootPath,
     projectType,

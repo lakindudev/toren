@@ -1,5 +1,5 @@
-import { render as renderMarkdown } from '../src/renderers/markdown-renderer.js';
-import { render as renderConsole } from '../src/renderers/console-renderer.js';
+import { render as renderMarkdown } from '../dist/renderers/markdown-renderer.js';
+import { render as renderConsole } from '../dist/renderers/console-renderer.js';
 
 const flatFiles = [];
 for (let i = 0; i < 50000; i++) {

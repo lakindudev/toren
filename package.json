@@ -1,14 +1,13 @@
 {
   "name": "@lakindu_perera/toren",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A powerful codebase scanner CLI tool for project analysis, framework detection, and understanding repository structure instantly.",
   "type": "module",
   "bin": {
-    "toren": "bin/toren.js"
+    "toren": "dist/cli/toren.js"
   },
   "files": [
-    "bin",
-    "src",
+    "dist",
     "LICENSE",
     "README.md",
     "CHANGELOG.md"
@@ -17,9 +16,11 @@
     "access": "public"
   },
   "scripts": {
-    "start": "node bin/toren.js",
+    "start": "node dist/cli/toren.js",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
     "test": "node --test",
-    "lint": "node --check bin/toren.js src/scanner/scan.js src/lifecycle.js src/renderers/index.js src/renderers/console-renderer.js src/renderers/json-renderer.js src/renderers/markdown-renderer.js src/renderers/html-renderer.js src/detectors/config-detector.js src/detectors/script-detector.js src/detectors/package-manager-detector.js"
+    "lint": "node --check dist/cli/toren.js dist/scanner/scan.js dist/lifecycle.js dist/renderers/index.js dist/renderers/console-renderer.js dist/renderers/json-renderer.js dist/renderers/markdown-renderer.js dist/renderers/html-renderer.js dist/detectors/config-detector.js dist/detectors/script-detector.js dist/detectors/package-manager-detector.js"
   },
   "keywords": [
     "cli tool",
@@ -44,5 +45,9 @@
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "typescript": "^7.0.2"
   }
 }

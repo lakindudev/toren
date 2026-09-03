@@ -196,7 +196,7 @@ const ECOSYSTEM_MANIFESTS = [
  * @param {string}          reason
  * @param {number}          priority
  */
-function addExact(out, fileSet, filePath, type, reason, priority) {
+function addExact(out: ImportantFile[], fileSet: Set<string>, filePath: string, type: string, reason: string, priority: number): void {
   if (fileSet.has(filePath)) {
     out.push({ path: filePath, type, reason, priority });
   }
@@ -213,7 +213,7 @@ function addExact(out, fileSet, filePath, type, reason, priority) {
  * @param {string}          reason
  * @param {number}          priority
  */
-function addPrefix(out, flatFiles, prefix, type, reason, priority) {
+function addPrefix(out: ImportantFile[], flatFiles: string[], prefix: string, type: string, reason: string, priority: number): void {
   for (const f of flatFiles) {
     if (f.startsWith(prefix)) {
       out.push({ path: f, type, reason, priority });
@@ -232,7 +232,7 @@ function addPrefix(out, flatFiles, prefix, type, reason, priority) {
  * @param {string}          reason
  * @param {number}          priority
  */
-function addSuffix(out, flatFiles, suffix, type, reason, priority) {
+function addSuffix(out: ImportantFile[], flatFiles: string[], suffix: string, type: string, reason: string, priority: number): void {
   for (const f of flatFiles) {
     if (f.endsWith(suffix)) {
       out.push({ path: f, type, reason, priority });
@@ -252,7 +252,7 @@ function addSuffix(out, flatFiles, suffix, type, reason, priority) {
  * @param {string}          reason
  * @param {number}          priority
  */
-function addRootPrefix(out, flatFiles, stem, type, reason, priority) {
+function addRootPrefix(out: ImportantFile[], flatFiles: string[], stem: string, type: string, reason: string, priority: number): void {
   for (const f of flatFiles) {
     // Must start with stem AND have no directory separator in the remainder
     if (f.startsWith(stem) && !f.slice(stem.length).includes('/')) {
@@ -275,8 +275,8 @@ function addRootPrefix(out, flatFiles, stem, type, reason, priority) {
  * @param {Set<string>} fileSet   - flatFiles as Set for O(1) lookup
  * @returns {ImportantFile[]}
  */
-function getProjectCandidates(projectType, flatFiles, fileSet) {
-  const out = [];
+function getProjectCandidates(projectType: string, flatFiles: string[], fileSet: Set<string>): ImportantFile[] {
+  const out: ImportantFile[] = [];
   const pt  = projectType.toLowerCase();
 
   // ── Framework build configs (apply to many ecosystems) ───────────────────
@@ -439,7 +439,7 @@ function getProjectCandidates(projectType, flatFiles, fileSet) {
  * @param {ImportantFile[]} rawCandidates
  * @returns {ImportantFile[]}
  */
-function deduplicateAndSort(rawCandidates) {
+function deduplicateAndSort(rawCandidates: ImportantFile[]): ImportantFile[] {
   /** @type {Map<string, ImportantFile>} */
   const best = new Map();
 
@@ -472,11 +472,13 @@ function deduplicateAndSort(rawCandidates) {
  * @param {string[]} params.configs      - Detected configuration file paths
  * @returns {{ importantFiles: ImportantFile[] }}
  */
-export function detectImportantFiles({ flatFiles, projectType, entryPoints, configs }) {
+import type { ImportantFile } from "../types/index.js";
+
+export function detectImportantFiles({ flatFiles, projectType, entryPoints, configs }: { flatFiles: string[], projectType: string, entryPoints: string[], configs: string[] }): { importantFiles: ImportantFile[] } {
   const fileSet = new Set(flatFiles);
 
   /** @type {ImportantFile[]} */
-  const raw = [];
+  const raw: ImportantFile[] = [];
 
   // ── 1. Generic files (always check, any project type) ────────────────────
   for (const candidate of GENERIC_CANDIDATES) {

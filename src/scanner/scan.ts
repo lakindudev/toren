@@ -1,3 +1,4 @@
+import type { ScanResult, DirNode, TreeNode, FileNode, CliOptions } from "../types/index.js";
 /**
  * @fileoverview Toren CLI — Codebase Scanner (Core Logic)
  *
@@ -118,7 +119,7 @@ const PROJECT_TYPE_MARKERS = [
 /**
  * Normalize a path to use POSIX separators ('/').
  */
-function toPosix(p) {
+function toPosix(p: string): string {
   return p.replace(/\\/g, '/');
 }
 
@@ -130,7 +131,7 @@ function toPosix(p) {
  * @param {boolean} includeHidden
  * @returns {boolean}
  */
-function shouldIgnore(name, dirent, includeHidden) {
+function shouldIgnore(name: string, dirent: fs.Dirent, includeHidden: boolean): boolean {
   if (!includeHidden && name.startsWith('.')) return true;
   return IGNORED_DIRS.has(name);
 }
@@ -146,13 +147,13 @@ function shouldIgnore(name, dirent, includeHidden) {
  * @param {number} maxFiles - Maximum number of files to scan before aborting
  * @returns {DirNode}
  */
-function walkDirectory(dirPath, rootPath, flatFiles, includeHidden, maxFiles) {
+function walkDirectory(dirPath: string, rootPath: string, flatFiles: string[], includeHidden: boolean, maxFiles: number): DirNode {
   const name    = path.basename(dirPath);
   let rawRelPath = path.relative(rootPath, dirPath) || '.';
   const relPath = toPosix(rawRelPath);
 
   /** @type {DirNode} */
-  const node = {
+  const node: DirNode = {
     type:     'directory',
     name,
     fullPath: dirPath,
@@ -171,7 +172,7 @@ function walkDirectory(dirPath, rootPath, flatFiles, includeHidden, maxFiles) {
   }
 
   // Sort: directories first, then files — both alphabetically.
-  entries.sort((a, b) => {
+  entries.sort((a: fs.Dirent, b: fs.Dirent) => {
     const aIsDir = a.isDirectory() ? 0 : 1;
     const bIsDir = b.isDirectory() ? 0 : 1;
     if (aIsDir !== bIsDir) return aIsDir - bIsDir;
@@ -200,7 +201,7 @@ function walkDirectory(dirPath, rootPath, flatFiles, includeHidden, maxFiles) {
       const relFilePath = toPosix(path.relative(rootPath, childPath));
 
       /** @type {FileNode} */
-      const fileNode = {
+      const fileNode: FileNode = {
         type:     'file',
         name:     dirent.name,
         fullPath: childPath,
@@ -223,7 +224,7 @@ function walkDirectory(dirPath, rootPath, flatFiles, includeHidden, maxFiles) {
  * @param {string} rootPath - Absolute path to the project root
  * @returns {string}
  */
-function detectProjectType(rootPath) {
+function detectProjectType(rootPath: string): string {
   for (const { marker, label } of PROJECT_TYPE_MARKERS) {
     const markerPath = path.join(rootPath, marker);
     if (fs.existsSync(markerPath)) {
@@ -244,7 +245,7 @@ function detectProjectType(rootPath) {
  * @param {string} pkgPath - Absolute path to package.json
  * @returns {string}
  */
-function refineNodeProjectType(pkgPath) {
+function refineNodeProjectType(pkgPath: string): string {
   try {
     const raw  = fs.readFileSync(pkgPath, 'utf8');
     const pkg  = JSON.parse(raw);
@@ -278,7 +279,7 @@ const FALSE_POSITIVES = [
   '/internal/', '/renderer/', '/renderers/', '/dist/', '/build/', '/generated/', '/node_modules/'
 ];
 
-function isFalsePositive(relPath) {
+function isFalsePositive(relPath: string): boolean {
   const normalized = '/' + relPath + '/'; // relPath is already POSIX
   if (FALSE_POSITIVES.some(fp => normalized.includes(fp))) return true;
   if (relPath.includes('.test.') || relPath.includes('.spec.')) return true;
@@ -287,7 +288,7 @@ function isFalsePositive(relPath) {
   return false;
 }
 
-function findEntryPoints(projectType, flatFiles, rootPath) {
+function findEntryPoints(projectType: string, flatFiles: string[], rootPath: string): string[] {
   let entries = [];
   const validFiles = flatFiles.filter(f => !isFalsePositive(f));
   const validSet = new Set(validFiles);
@@ -435,7 +436,7 @@ function findEntryPoints(projectType, flatFiles, rootPath) {
  * @param {DirNode} node
  * @returns {number}
  */
-function countFolders(node) {
+function countFolders(node: DirNode): number {
   let count = 1; // count this directory
   for (const child of node.children ?? []) {
     if (child.type === 'directory') {
@@ -449,7 +450,7 @@ function countFolders(node) {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function scan(targetPath, options = {}) {
+export function scan(targetPath: string, options: Partial<CliOptions> = {}): ScanResult {
   const rootPath = path.resolve(targetPath);
   const includeHidden = !!options.includeHidden;
   const maxFiles = options.maxFiles || 50000; // Default cap of 50k files for huge repos
@@ -458,7 +459,7 @@ export function scan(targetPath, options = {}) {
   let stat;
   try {
     stat = fs.statSync(rootPath);
-  } catch (err) {
+  } catch (err: any) {
     const error = new Error(`Path does not exist: ${rootPath}`);
     if (err.code === 'EACCES' || err.code === 'EPERM') {
       error.title = 'Permission denied';
@@ -473,7 +474,7 @@ export function scan(targetPath, options = {}) {
   }
 
   /** @type {Array<string>} */
-  const flatFiles   = [];
+  const flatFiles: string[] = [];
   /** @type {Array<string>} */
   let entryPoints = [];
   /** @type {Array<string>} */
@@ -505,13 +506,12 @@ export function scan(targetPath, options = {}) {
     health = detectHealth({ flatFiles, configs, importantFiles, scripts, projectType }).health;
   } else if (stat.isFile()) {
     const relFilePath = toPosix(path.basename(rootPath));
-    tree = {
-      type: 'directory',
+    tree = { type: 'directory' as 'directory',
       name: path.basename(path.dirname(rootPath)),
       fullPath: path.dirname(rootPath),
       relPath: '.',
       children: [{
-        type: 'file',
+        type: 'file' as 'file',
         name: relFilePath,
         fullPath: rootPath,
         relPath: relFilePath

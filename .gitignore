@@ -5,3 +5,6 @@ coverage/
 *.tgz
 *.log
 npm-debug.log*
+dist/
+bin/
+report.html

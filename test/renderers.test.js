@@ -1,9 +1,9 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { render as renderConsole } from '../src/renderers/console-renderer.js';
-import { render as renderJson } from '../src/renderers/json-renderer.js';
-import { render as renderMarkdown } from '../src/renderers/markdown-renderer.js';
-import { render as renderHtml } from '../src/renderers/html-renderer.js';
+import { render as renderConsole } from '../dist/renderers/console-renderer.js';
+import { render as renderJson } from '../dist/renderers/json-renderer.js';
+import { render as renderMarkdown } from '../dist/renderers/markdown-renderer.js';
+import { render as renderHtml } from '../dist/renderers/html-renderer.js';
 
 // Helper to capture console.log output
 function captureStdout(fn) {

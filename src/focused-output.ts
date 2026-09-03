@@ -1,3 +1,4 @@
+import type { ScanResult, CliOptions, ImportantFile, ScriptInfo, HealthObservation } from "./types/index.js";
 /**
  * @fileoverview Toren — Focused Output Mode Handler
  *
@@ -48,7 +49,11 @@ export const FOCUSED_FLAGS = [
  * @param {string[]} args Process arguments
  * @returns {{ error: boolean, message?: string, mode?: string|null }}
  */
-export function getFocusedModeInfo(args) {
+type FocusedModeResult =
+  | { error: true; title: string; message: string; detailLabel: string; detailValue: string }
+  | { error: false; mode: string | null };
+
+export function getFocusedModeInfo(args: string[]): FocusedModeResult {
   const activeFlags = FOCUSED_FLAGS.filter(flag => args.includes(flag));
   
   if (activeFlags.length > 1) {
@@ -73,7 +78,7 @@ export function getFocusedModeInfo(args) {
  *
  * @param {string} title
  */
-function printSectionHeader(title) {
+function printSectionHeader(title: string): void {
   console.log(`\x1b[1m\x1b[97m${title}\x1b[0m`);
   console.log(`\x1b[2m${'─'.repeat(title.length)}\x1b[0m`);
   console.log('');
@@ -86,7 +91,7 @@ function printSectionHeader(title) {
  * @param {string[]} items    - Pre-formatted lines to print
  * @param {string}   emptyMsg - Canonical empty-state message (ends with '.')
  */
-function section(title, items, emptyMsg) {
+function section(title: string, items: string[], emptyMsg: string): void {
   printSectionHeader(title);
 
   if (!items || items.length === 0) {
@@ -104,7 +109,7 @@ function section(title, items, emptyMsg) {
  * @param {string} mode Active focused mode flag
  * @param {import('./scanner/scan.js').ScanResult} result 
  */
-export function renderFocusedMode(mode, result) {
+export function renderFocusedMode(mode: string, result: ScanResult): void {
   switch (mode) {
     case '--project-type': {
       // projectType is always a string; 'Unknown' when undetected.
@@ -178,10 +183,10 @@ export function renderFocusedMode(mode, result) {
     }
 
     case '--important-files': {
-      const items = [];
+      const items: string[] = [];
       if (result.importantFiles && result.importantFiles.length > 0) {
         const top10 = result.importantFiles.slice(0, 10);
-        top10.forEach((f, idx) => {
+        top10.forEach((f: ImportantFile, idx: number) => {
           items.push(`${idx + 1}. \x1b[97m${f.path}\x1b[0m`);
           items.push(`   \x1b[2m${f.reason}\x1b[0m\n`);
         });
@@ -195,7 +200,7 @@ export function renderFocusedMode(mode, result) {
     }
 
     case '--health': {
-      const items = [];
+      const items: string[] = [];
       if (result.health && result.health.length > 0) {
         for (const h of result.health) {
           let icon = 'ℹ';

@@ -1,15 +1,5 @@
-/**
- * @fileoverview Configuration file detector
- */
-
-/**
- * Detects common configuration files in the root of the repository.
- *
- * @param {string[]} flatFiles - Array of relative file paths from the scanner
- * @returns {{ configs: string[] }}
- */
-export function detectConfigs(flatFiles) {
-  const configPatterns = [
+export function detectConfigs(flatFiles: string[]): { configs: string[] } {
+  const configPatterns: RegExp[] = [
     // Package
     /^package\.json$/,
     /^package-lock\.json$/,
@@ -60,22 +50,19 @@ export function detectConfigs(flatFiles) {
     /^docker-compose\.ya?ml$/
   ];
 
-  const matchedSet = new Set();
+  const matchedSet = new Set<string>();
 
   for (const file of flatFiles) {
-    // Ensure we only match files at the root of the repository
     if (file.includes('/')) continue;
 
     for (const pattern of configPatterns) {
       if (pattern.test(file)) {
         matchedSet.add(file);
-        break; // Stop checking patterns once a match is found
+        break;
       }
     }
   }
 
-  // Convert Set to Array and sort alphabetically
   const configs = Array.from(matchedSet).sort();
-
   return { configs };
 }

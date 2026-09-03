@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CLI_PATH = path.resolve(__dirname, '../bin/toren.js');
+const CLI_PATH = path.resolve(__dirname, '../dist/cli/toren.js');
 const PKG_PATH = path.resolve(__dirname, '../package.json');
 
 const stripAnsi = (str) => str.replace(/\x1b\[[0-9;]*m/g, '');

@@ -30,7 +30,7 @@ import path from 'node:path';
  * Maps a known script name to its canonical human-readable description.
  * @type {Map<string, string>}
  */
-const NAME_DESCRIPTIONS = new Map([
+const NAME_DESCRIPTIONS = new Map<string, string>([
   ['dev',        'Start the development server'],
   ['develop',    'Start the development server'],
   ['start',      'Start the application'],
@@ -56,7 +56,7 @@ const NAME_DESCRIPTIONS = new Map([
  * Maps a known script name to its functional category.
  * @type {Map<string, string>}
  */
-const NAME_CATEGORIES = new Map([
+const NAME_CATEGORIES = new Map<string, string>([
   ['dev',        'development'],
   ['develop',    'development'],
   ['start',      'development'],
@@ -133,7 +133,7 @@ const BUN_LIFECYCLE = new Set(['test', 'start']);
  * @param {string|null} packageManager - Detected package manager or null
  * @returns {string}
  */
-function buildUsage(name, packageManager) {
+function buildUsage(name: string, packageManager: PackageManager | null): string {
   switch (packageManager) {
     case 'npm':
       return NPM_LIFECYCLE.has(name) ? `npm ${name}` : `npm run ${name}`;
@@ -168,7 +168,7 @@ function buildUsage(name, packageManager) {
  * @param {string} command
  * @returns {{ description: string|null, category: string|null }}
  */
-function resolveIntelligence(name, command) {
+function resolveIntelligence(name: string, command: string): { description: string | null, category: string | null } {
   // 1. Exact name match (canonical mapping — highest confidence).
   const nameDescription = NAME_DESCRIPTIONS.get(name) ?? null;
   const nameCategory    = NAME_CATEGORIES.get(name)    ?? null;
@@ -215,8 +215,10 @@ function resolveIntelligence(name, command) {
  * @param {string|null} [packageManager=null] - Detected package manager name
  * @returns {{ scripts: ScriptItem[] }}
  */
-export function detectScripts(rootPath, packageManager = null) {
-  const scripts = [];
+import type { ScriptInfo, PackageManager } from "../types/index.js";
+
+export function detectScripts(rootPath: string, packageManager: PackageManager | null = null): { scripts: ScriptInfo[] } {
+  const scripts: ScriptInfo[] = [];
   const pkgPath = path.join(rootPath, 'package.json');
 
   try {

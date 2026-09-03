@@ -20,8 +20,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { detectPackageManager } from '../src/detectors/package-manager-detector.js';
-import { scan }                 from '../src/scanner/scan.js';
+import { detectPackageManager } from '../dist/detectors/package-manager-detector.js';
+import { scan }                 from '../dist/scanner/scan.js';
 
 // ---------------------------------------------------------------------------
 // Unit tests — detectPackageManager(flatFiles)

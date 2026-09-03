@@ -1,14 +1,21 @@
-/**
- * Detect project health observations.
- */
+import type { HealthObservation, ScriptInfo, ImportantFile } from '../types/index.js';
+
+interface DetectHealthOptions {
+  flatFiles: string[];
+  configs: string[];
+  importantFiles: ImportantFile[];
+  scripts: ScriptInfo[];
+  projectType: string;
+}
+
 export function detectHealth({
   flatFiles,
   configs,
   importantFiles,
   scripts,
   projectType
-}) {
-  const health = [];
+}: DetectHealthOptions): { health: HealthObservation[] } {
+  const health: HealthObservation[] = [];
   const fileSet = new Set(flatFiles);
 
   // README

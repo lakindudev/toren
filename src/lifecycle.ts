@@ -10,7 +10,7 @@ const C = {
   red:     '\x1b[31m',
 };
 
-function paint(text, ...codes) {
+function paint(text: string, ...codes: string[]): string {
   return `${codes.join('')}${text}${C.reset}`;
 }
 
@@ -65,7 +65,7 @@ function getInstallStatus() {
   return status;
 }
 
-export function runDoctor(pkgVersion) {
+export function runDoctor(pkgVersion: string): void {
   const status = getInstallStatus();
 
   if (status.isBroken) {

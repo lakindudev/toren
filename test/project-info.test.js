@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { detectProjectInfo } from '../src/detectors/project-info-detector.js';
+import { detectProjectInfo } from '../dist/detectors/project-info-detector.js';
 
 describe('detectProjectInfo', () => {
   function makeDir(files) {

@@ -23,13 +23,14 @@
  */
 
 import { createRequire } from 'node:module';
-import { scan }          from '../src/scanner/scan.js';
-import renderers         from '../src/renderers/index.js';
-import { getFocusedModeInfo, renderFocusedMode, FOCUSED_FLAGS } from '../src/focused-output.js';
-import { runDoctor, runUninstall } from '../src/lifecycle.js';
+import type { CliOptions, OutputFormat } from "../types/index.js";
+import { scan }          from '../scanner/scan.js';
+import renderers         from '../renderers/index.js';
+import { getFocusedModeInfo, renderFocusedMode, FOCUSED_FLAGS } from '../focused-output.js';
+import { runDoctor, runUninstall } from '../lifecycle.js';
 
 const require = createRequire(import.meta.url);
-const pkg     = require('../package.json');
+const pkg     = require('../../package.json');
 
 /** Format used when no --format flag is supplied. */
 const DEFAULT_FORMAT = 'console';
@@ -41,7 +42,7 @@ const SUPPORTED_FORMATS = Object.keys(renderers);
 // Helpers
 // ---------------------------------------------------------------------------
 
-function printError(title, message, detailLabel, detailValue) {
+function printError(title: string, message: string, detailLabel?: string, detailValue?: string): void {
   console.error(`\x1b[31m✖ ${title}\x1b[0m\n`);
   console.error(`${message}\n`);
   if (detailLabel && detailValue) {
@@ -255,8 +256,8 @@ function parseArgs() {
  *
  * @param {string} format
  */
-function assertValidFormat(format) {
-  if (renderers[format]) return;
+function assertValidFormat(format: string): void {
+  if (renderers[format as OutputFormat]) return;
 
   printError(
     'Unsupported output format',
@@ -280,30 +281,30 @@ function assertValidFormat(format) {
   if (parsed.action === 'wait') return;
 
   // Validate before scanning — fail fast on bad format names.
-  assertValidFormat(parsed.format);
+  assertValidFormat(parsed.format as string);
 
-  const render = renderers[parsed.format];
+  const render = renderers[parsed.format as OutputFormat];
 
   try {
-    const result = scan(parsed.target, {
+    const result = scan(parsed.target as string, {
       includeHidden: parsed.includeHidden,
       maxFiles:      parsed.maxFiles,
     });
     
     if (parsed.focusedMode) {
-      renderFocusedMode(parsed.focusedMode, result);
+      renderFocusedMode(parsed.focusedMode as string, result);
     } else {
       render(result, { cwd: process.cwd() });
     }
-  } catch (err) {
+  } catch (err: any) {
     // Render errors in the requested format where possible.
     if (parsed.format === 'json') {
-      console.error(JSON.stringify({ error: err.message }, null, 2));
+      console.error(JSON.stringify({ error: (err as any).message }, null, 2));
     } else {
       if (err.title) {
-        printError(err.title, err.message, err.detailLabel, err.detailValue);
+        printError(err.title, (err as any).message, (err as any).detailLabel, (err as any).detailValue);
       } else {
-        printError('Scan failed', err.message);
+        printError('Scan failed', (err as any).message);
       }
     }
     process.exit(1);

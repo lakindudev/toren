@@ -1,6 +1,6 @@
 import test, { describe, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectHealth } from '../src/detectors/health-detector.js';
+import { detectHealth } from '../dist/detectors/health-detector.js';
 
 describe('detectHealth', () => {
   test('full healthy Node project', () => {

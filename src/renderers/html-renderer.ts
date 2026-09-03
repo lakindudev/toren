@@ -1,3 +1,4 @@
+import type { ScanResult, DirNode, TreeNode, FileNode, ScriptInfo, ImportantFile, HealthObservation, ProjectInfo, PackageManager } from "../types/index.js";
 /**
  * @fileoverview Toren — HTML Renderer
  *
@@ -42,7 +43,7 @@ import path from 'node:path';
  * @param {number}   depth
  * @param {number}   maxDepth
  */
-function serializeNode(node, prefix, isLast, lines, depth = 0, maxDepth = 5) {
+function serializeNode(node: DirNode | FileNode | TreeNode, prefix: string, isLast: boolean, lines: string[], depth = 0, maxDepth = 5): void {
   if (depth >= maxDepth) return;
 
   const connector = isLast ? '└── ' : '├── ';
@@ -80,7 +81,7 @@ function serializeNode(node, prefix, isLast, lines, depth = 0, maxDepth = 5) {
  * @param {number}   totalFiles
  * @returns {string}
  */
-function buildTreeString(tree, rootName, totalFiles) {
+function buildTreeString(tree: DirNode, rootName: string, totalFiles: number): string {
   if (totalFiles === 0) return 'No files scanned.';
 
   const lines    = [`${rootName}/`];
@@ -103,7 +104,7 @@ function buildTreeString(tree, rootName, totalFiles) {
  * @param {unknown} value
  * @returns {string}
  */
-function esc(value) {
+function esc(value: string | number | boolean | null | undefined): string {
   return String(value ?? '')
     .replace(/&/g,  '&amp;')
     .replace(/</g,  '&lt;')
@@ -119,7 +120,7 @@ function esc(value) {
  * @param {number} ms
  * @returns {string}
  */
-function formatDuration(ms) {
+function formatDuration(ms: number): string {
   if (ms < 1)     return '< 1 ms';
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
   return `${Math.round(ms)} ms`;
@@ -135,7 +136,7 @@ function formatDuration(ms) {
  *
  * @returns {string}
  */
-function buildStyles() {
+function buildStyles(): string {
   return `<style>
 /* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -607,7 +608,7 @@ const icon = {
  * @param {string} projectType
  * @returns {string[]}
  */
-function deriveFrameworks(projectType) {
+function deriveFrameworks(projectType: string): string[] {
   if (!projectType || projectType === 'Unknown') return [];
   return [projectType];
 }
@@ -619,7 +620,7 @@ function deriveFrameworks(projectType) {
  * @param {string} relRoot
  * @returns {string}
  */
-function renderHeader(projectType, relRoot) {
+function renderHeader(projectType: string, relRoot: string): string {
   return `
   <header class="header">
     <div class="header-top">
@@ -650,7 +651,7 @@ function renderHeader(projectType, relRoot) {
  * @param {import('../scanner/scan.js').ScanResult} result
  * @returns {string}
  */
-function renderSummaryCards(result) {
+function renderSummaryCards(result: ScanResult): string {
   const { projectType, flatFiles, totalFolders, scanDurationMs } = result;
 
   const cards = [
@@ -701,7 +702,7 @@ function renderSummaryCards(result) {
  * @param {string} projectType
  * @returns {string}
  */
-function renderFrameworks(projectType) {
+function renderFrameworks(projectType: string): string {
   const frameworks = deriveFrameworks(projectType);
   const count      = frameworks.length;
 
@@ -736,7 +737,7 @@ function renderFrameworks(projectType) {
  * @param {string[]} entryPoints
  * @returns {string}
  */
-function renderEntryPoints(entryPoints) {
+function renderEntryPoints(entryPoints: string[]): string {
   const count = entryPoints.length;
 
   const body = count === 0
@@ -770,7 +771,7 @@ function renderEntryPoints(entryPoints) {
  * @param {string[]} configs
  * @returns {string}
  */
-function renderConfigurationFiles(configs) {
+function renderConfigurationFiles(configs: string[]): string {
   const count = configs.length;
 
   const body = count === 0
@@ -804,7 +805,7 @@ function renderConfigurationFiles(configs) {
  * @param {Array<{name: string, command: string}>} scripts
  * @returns {string}
  */
-function renderProjectInfo(projectInfo, packageManager) {
+function renderProjectInfo(projectInfo: ProjectInfo | null, packageManager: PackageManager | null): string {
   const rows = [];
   if (projectInfo?.name) rows.push(['Name', projectInfo.name]);
   if (packageManager) rows.push(['Package Manager', packageManager]);
@@ -843,7 +844,7 @@ function renderProjectInfo(projectInfo, packageManager) {
   </section>`;
 }
 
-function renderImportantFiles(importantFiles) {
+function renderImportantFiles(importantFiles: ImportantFile[]): string {
   const count = importantFiles.length;
 
   const body = count === 0
@@ -881,7 +882,7 @@ function renderImportantFiles(importantFiles) {
   </section>`;
 }
 
-function renderProjectHealth(health) {
+function renderProjectHealth(health: HealthObservation[]): string {
   const count = health.length;
 
   const body = count === 0
@@ -916,7 +917,7 @@ function renderProjectHealth(health) {
   </section>`;
 }
 
-function renderPackageScripts(scripts) {
+function renderPackageScripts(scripts: ScriptInfo[]): string {
   const count = scripts.length;
 
   const body = count === 0
@@ -967,7 +968,7 @@ function renderPackageScripts(scripts) {
  * @param {string} rootName
  * @returns {string}
  */
-function renderFolderStructure(tree, flatFiles, rootName) {
+function renderFolderStructure(tree: DirNode, flatFiles: string[], rootName: string): string {
   const treeStr = buildTreeString(tree, rootName, flatFiles.length);
 
   return `
@@ -991,7 +992,7 @@ function renderFolderStructure(tree, flatFiles, rootName) {
  * @param {import('../scanner/scan.js').ScanResult} result
  * @returns {string}
  */
-function renderStats(result) {
+function renderStats(result: ScanResult): string {
   const { flatFiles, totalFolders, scanDurationMs } = result;
 
   const rows = [
@@ -1031,7 +1032,7 @@ function renderStats(result) {
  *
  * @returns {string}
  */
-function renderScanInfo() {
+function renderScanInfo(): string {
   const rows = [
     ['Generated by', '<strong>Toren</strong> — Codebase Onboarding Intelligence'],
     ['Output format', 'HTML'],
@@ -1062,7 +1063,7 @@ function renderScanInfo() {
  *
  * @returns {string}
  */
-function renderFooter() {
+function renderFooter(): string {
   return `
   <footer class="footer">
     <span class="footer-brand">${icon.code()} Toren</span>
@@ -1084,7 +1085,7 @@ function renderFooter() {
  * @param {import('../scanner/scan.js').ScanResult} result
  * @param {{ cwd?: string }} [options]
  */
-export function render(result, options = {}) {
+export function render(result: ScanResult, options: { cwd?: string } = {}): void {
   const { rootPath, projectType, entryPoints, configs = [], scripts = [], flatFiles, tree, importantFiles = [], health = [], projectInfo, packageManager } = result;
 
   const cwd      = options.cwd ?? process.cwd();

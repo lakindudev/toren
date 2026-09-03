@@ -24,8 +24,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { detectScripts } from '../src/detectors/script-detector.js';
-import { scan }          from '../src/scanner/scan.js';
+import { detectScripts } from '../dist/detectors/script-detector.js';
+import { scan }          from '../dist/scanner/scan.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);

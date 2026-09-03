@@ -1,7 +1,7 @@
 import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectImportantFiles } from '../src/detectors/important-files-detector.js';
-import { scan } from '../src/scanner/scan.js';
+import { detectImportantFiles } from '../dist/detectors/important-files-detector.js';
+import { scan } from '../dist/scanner/scan.js';
 
 describe('detectImportantFiles', () => {
   test('returns empty array when no important files exist', () => {
