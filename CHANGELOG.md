@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.10] - 2026-09-06
+### Added
+- **Full Tree Output**: Added a new `--all` (or `-a`) flag to the CLI. This flag bypasses the default display limit and prints the complete directory tree without hiding any files or folders, making it easier to view, copy, or document the entire file structure.
+
 ## [1.0.9] - 2026-08-31
 ### Changed
 - **TypeScript Foundation**: Completely migrated the entire Torén codebase from JavaScript to TypeScript.
