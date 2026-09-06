@@ -546,6 +546,7 @@ export function scan(targetPath: string, options: Partial<CliOptions> = {}): Sca
     importantFiles,
     projectInfo,
     health,
+    technologyStack: { technologies: [] },
     tree,
     flatFiles,
     totalFolders,
