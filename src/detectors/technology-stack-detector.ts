@@ -12,6 +12,7 @@
  *      config file                 → +0.25 (strong supporting)
  *      file / directory evidence   → +0.15 (supporting)
  *      script keyword              → +0.15 (supporting)
+ *      manifest                    → +0.15 (supporting)
  *  - Confidence is capped at 1.0.
  *  - Technologies below the CONFIDENCE_THRESHOLD (0.60) are suppressed.
  *  - When multiple rules match the same technology, evidence is merged and
@@ -25,14 +26,30 @@
  *   Tailwind CSS, Sass, Less, Styled Components, Emotion, Bootstrap,
  *   Material UI, Chakra UI
  *
- * False-positive guards:
- *   - A directory named react/ alone does NOT indicate React.
- *   - A README mentioning Next.js does NOT indicate Next.js.
- *   - A directory named next/ alone does NOT indicate Next.js.
+ * Backend technologies detected (Step 5):
+ *   Node.js: Express, Fastify, NestJS, Koa, Hapi
+ *   Python:  Django, Flask, FastAPI
+ *   Java:    Spring Boot
+ *   PHP:     Laravel
+ *   Ruby:    Rails
+ *
+ * Database technologies detected (Step 5):
+ *   PostgreSQL, MySQL, MariaDB, SQLite, MongoDB, Redis
+ *
+ * ORM / data-access tools detected (Step 5):
+ *   Prisma, Drizzle, TypeORM, Sequelize, Mongoose, Knex,
+ *   SQLAlchemy, Hibernate, Django ORM, Eloquent, Active Record
+ *
+ * False-positive / safety guards:
+ *   - Directory names alone never trigger framework detection.
+ *   - .env / secret files are NEVER read or scanned.
+ *   - Database URLs / credentials are NEVER used as evidence.
+ *   - ORM is never guessed from database type; each needs its own evidence.
  *   - Plain CSS files are never reported as a technology framework.
  *
  * @module detectors/technology-stack-detector
  */
+
 
 import type {
   Technology,
@@ -60,7 +77,7 @@ const SCORE: Record<TechnologyEvidenceType, number> = {
   file:           0.15,
   directory:      0.15,
   script:         0.15,
-  manifest:       0.15,
+  manifest:       0.60,
 };
 
 /**
@@ -644,6 +661,667 @@ const TECH_RULES: TechRule[] = [
     evidenceType: 'devDependency',
     match: ({ packageManifest }) =>
       packageManifest?.devDependencies?.['@chakra-ui/react'] ? '@chakra-ui/react' : null,
+  },
+
+  // ==========================================================================
+  // BACKEND FRAMEWORKS
+  // ==========================================================================
+  //
+  // Node.js backends: detected via packageManifest deps.
+  // Python/Java/PHP/Ruby: detected via flatFiles manifest/config/file signals,
+  // since packageManifest is null for non-Node projects.
+  //
+  // Safety contract:
+  //   - .env files are NEVER read or inspected.
+  //   - No credentials or connection strings are ever accessed.
+  //   - All evidence is structural (file presence, package names).
+
+  // ── Express ───────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Express',
+    category: 'backend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['express'] ? 'express' : null,
+  },
+  {
+    tech: 'Express',
+    category: 'backend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['express'] ? 'express' : null,
+  },
+
+  // ── Fastify ───────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Fastify',
+    category: 'backend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['fastify'] ? 'fastify' : null,
+  },
+  {
+    tech: 'Fastify',
+    category: 'backend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['fastify'] ? 'fastify' : null,
+  },
+
+  // ── NestJS ────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'NestJS',
+    category: 'backend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@nestjs/core'] ? '@nestjs/core' : null,
+  },
+  {
+    tech: 'NestJS',
+    category: 'backend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@nestjs/core'] ? '@nestjs/core' : null,
+  },
+  {
+    // nest-cli.json is a root-level NestJS CLI config file.
+    tech: 'NestJS',
+    category: 'backend',
+    evidenceType: 'config',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('nest-cli.json') ? 'nest-cli.json' : null,
+  },
+
+  // ── Koa ───────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Koa',
+    category: 'backend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['koa'] ? 'koa' : null,
+  },
+  {
+    tech: 'Koa',
+    category: 'backend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['koa'] ? 'koa' : null,
+  },
+
+  // ── Hapi ──────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Hapi',
+    category: 'backend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@hapi/hapi'] ? '@hapi/hapi' : null,
+  },
+  {
+    tech: 'Hapi',
+    category: 'backend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@hapi/hapi'] ? '@hapi/hapi' : null,
+  },
+
+  // ── Django ────────────────────────────────────────────────────────────────
+  // manage.py at root is the canonical Django management script. It is
+  // generated by `django-admin startproject` and is unique to Django.
+  // Treated as manifest-level evidence (0.60) so Django crosses the threshold
+  // on its own. settings.py provides additional supporting evidence.
+
+  {
+    tech: 'Django',
+    category: 'backend',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('manage.py') ? 'manage.py' : null,
+  },
+  {
+    tech: 'Django',
+    category: 'backend',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f === 'settings.py' || f.endsWith('/settings.py'))
+        ? 'settings.py'
+        : null,
+  },
+
+  // ── Flask ─────────────────────────────────────────────────────────────────
+  // app.py at root + a Python manifest (requirements.txt / pyproject.toml /
+  // Pipfile) is treated as manifest-level evidence (0.60).
+  // wsgi.py provides additional supporting evidence.
+
+  {
+    tech: 'Flask',
+    category: 'backend',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const hasApp = flatFiles.includes('app.py');
+      const hasPyManifest =
+        flatFiles.includes('requirements.txt') ||
+        flatFiles.includes('pyproject.toml') ||
+        flatFiles.includes('Pipfile');
+      return hasApp && hasPyManifest ? 'app.py' : null;
+    },
+  },
+  {
+    tech: 'Flask',
+    category: 'backend',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f === 'wsgi.py' || f.endsWith('/wsgi.py'))
+        ? 'wsgi.py'
+        : null,
+  },
+
+  // ── FastAPI ───────────────────────────────────────────────────────────────
+  // main.py at root + a Python manifest = manifest-level evidence (0.60).
+  // routers/ directory is additional supporting evidence.
+
+  {
+    tech: 'FastAPI',
+    category: 'backend',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const hasMain = flatFiles.includes('main.py');
+      const hasPyManifest =
+        flatFiles.includes('requirements.txt') ||
+        flatFiles.includes('pyproject.toml') ||
+        flatFiles.includes('Pipfile');
+      return hasMain && hasPyManifest ? 'main.py' : null;
+    },
+  },
+  {
+    tech: 'FastAPI',
+    category: 'backend',
+    evidenceType: 'directory',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f.startsWith('routers/') || f.startsWith('app/routers/'))
+        ? 'routers/ directory'
+        : null,
+  },
+
+  // ── Spring Boot ───────────────────────────────────────────────────────────
+  // pom.xml and build.gradle are recognised by detectConfigs (root-level only).
+  // *Application.java is the canonical Spring Boot entry-point convention.
+
+  {
+    tech: 'Spring Boot',
+    category: 'backend',
+    evidenceType: 'config',
+    match: ({ configs }) =>
+      configs.includes('pom.xml') ? 'pom.xml' : null,
+  },
+  {
+    tech: 'Spring Boot',
+    category: 'backend',
+    evidenceType: 'config',
+    match: ({ configs }) =>
+      configs.includes('build.gradle') || configs.includes('build.gradle.kts')
+        ? (configs.includes('build.gradle') ? 'build.gradle' : 'build.gradle.kts')
+        : null,
+  },
+  {
+    tech: 'Spring Boot',
+    category: 'backend',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f.endsWith('Application.java'))
+        ? 'Application.java'
+        : null,
+  },
+
+  // ── Laravel ───────────────────────────────────────────────────────────────
+  // artisan is present in every Laravel project (0.60 manifest).
+  // composer.json provides additional PHP-project confirmation.
+
+  {
+    tech: 'Laravel',
+    category: 'backend',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('artisan') ? 'artisan' : null,
+  },
+  {
+    tech: 'Laravel',
+    category: 'backend',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('composer.json') ? 'composer.json' : null,
+  },
+
+  // ── Rails ─────────────────────────────────────────────────────────────────
+  // Gemfile (0.60 manifest) + config/routes.rb (0.15 file) = 0.75.
+
+  {
+    tech: 'Rails',
+    category: 'backend',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('Gemfile') ? 'Gemfile' : null,
+  },
+  {
+    tech: 'Rails',
+    category: 'backend',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('config/routes.rb') ? 'config/routes.rb' : null,
+  },
+
+  // ==========================================================================
+  // DATABASES
+  // ==========================================================================
+  //
+  // Evidence: package.json deps OR structural config/schema files.
+  // Safety: .env files are NEVER read. DATABASE_URL / connection strings are
+  //         NEVER used as evidence — only package names and config files.
+
+  // ── PostgreSQL ────────────────────────────────────────────────────────────
+
+  {
+    tech: 'PostgreSQL',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['pg'] ? 'pg' : null,
+  },
+  {
+    tech: 'PostgreSQL',
+    category: 'database',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['pg'] ? 'pg' : null,
+  },
+  {
+    tech: 'PostgreSQL',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['postgres'] ? 'postgres' : null,
+  },
+  {
+    tech: 'PostgreSQL',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@neondatabase/serverless']
+        ? '@neondatabase/serverless'
+        : null,
+  },
+
+  // ── MySQL ─────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'MySQL',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['mysql'] ? 'mysql' : null,
+  },
+  {
+    tech: 'MySQL',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['mysql2'] ? 'mysql2' : null,
+  },
+  {
+    tech: 'MySQL',
+    category: 'database',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['mysql2'] ? 'mysql2' : null,
+  },
+
+  // ── MariaDB ───────────────────────────────────────────────────────────────
+
+  {
+    tech: 'MariaDB',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['mariadb'] ? 'mariadb' : null,
+  },
+  {
+    tech: 'MariaDB',
+    category: 'database',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['mariadb'] ? 'mariadb' : null,
+  },
+
+  // ── SQLite ────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'SQLite',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['sqlite3'] ? 'sqlite3' : null,
+  },
+  {
+    tech: 'SQLite',
+    category: 'database',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['sqlite3'] ? 'sqlite3' : null,
+  },
+  {
+    tech: 'SQLite',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['better-sqlite3'] ? 'better-sqlite3' : null,
+  },
+  {
+    tech: 'SQLite',
+    category: 'database',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['better-sqlite3'] ? 'better-sqlite3' : null,
+  },
+  {
+    tech: 'SQLite',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@libsql/client'] ? '@libsql/client' : null,
+  },
+  {
+    // *.db / *.sqlite files are supporting structural evidence.
+    tech: 'SQLite',
+    category: 'database',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => /\.(db|sqlite|sqlite3)$/.test(f))
+        ? '*.db / *.sqlite file'
+        : null,
+  },
+
+  // ── MongoDB ───────────────────────────────────────────────────────────────
+
+  {
+    tech: 'MongoDB',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['mongodb'] ? 'mongodb' : null,
+  },
+  {
+    tech: 'MongoDB',
+    category: 'database',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['mongodb'] ? 'mongodb' : null,
+  },
+
+  // ── Redis ─────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Redis',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['redis'] ? 'redis' : null,
+  },
+  {
+    tech: 'Redis',
+    category: 'database',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['redis'] ? 'redis' : null,
+  },
+  {
+    tech: 'Redis',
+    category: 'database',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['ioredis'] ? 'ioredis' : null,
+  },
+  {
+    tech: 'Redis',
+    category: 'database',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['ioredis'] ? 'ioredis' : null,
+  },
+
+  // ==========================================================================
+  // ORM / DATA-ACCESS TOOLS
+  // ==========================================================================
+  //
+  // Each ORM has independent evidence — never inferred from the database type.
+  // Schema/config files are detected via presence only; content is never read.
+
+  // ── Prisma ────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Prisma',
+    category: 'orm',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@prisma/client'] ? '@prisma/client' : null,
+  },
+  {
+    tech: 'Prisma',
+    category: 'orm',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['prisma'] ? 'prisma' : null,
+  },
+  {
+    tech: 'Prisma',
+    category: 'orm',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@prisma/client'] ? '@prisma/client' : null,
+  },
+  {
+    // schema.prisma presence is structural evidence — file is NOT read.
+    tech: 'Prisma',
+    category: 'orm',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f === 'prisma/schema.prisma' || f.endsWith('/schema.prisma'))
+        ? 'prisma/schema.prisma'
+        : null,
+  },
+
+  // ── Drizzle ───────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Drizzle',
+    category: 'orm',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['drizzle-orm'] ? 'drizzle-orm' : null,
+  },
+  {
+    tech: 'Drizzle',
+    category: 'orm',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['drizzle-orm'] ? 'drizzle-orm' : null,
+  },
+  {
+    tech: 'Drizzle',
+    category: 'orm',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['drizzle-kit'] ? 'drizzle-kit' : null,
+  },
+
+  // ── TypeORM ───────────────────────────────────────────────────────────────
+
+  {
+    tech: 'TypeORM',
+    category: 'orm',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['typeorm'] ? 'typeorm' : null,
+  },
+  {
+    tech: 'TypeORM',
+    category: 'orm',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['typeorm'] ? 'typeorm' : null,
+  },
+
+  // ── Sequelize ─────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Sequelize',
+    category: 'orm',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['sequelize'] ? 'sequelize' : null,
+  },
+  {
+    tech: 'Sequelize',
+    category: 'orm',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['sequelize'] ? 'sequelize' : null,
+  },
+
+  // ── Mongoose ──────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Mongoose',
+    category: 'orm',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['mongoose'] ? 'mongoose' : null,
+  },
+  {
+    tech: 'Mongoose',
+    category: 'orm',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['mongoose'] ? 'mongoose' : null,
+  },
+
+  // ── Knex ──────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Knex',
+    category: 'orm',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['knex'] ? 'knex' : null,
+  },
+  {
+    tech: 'Knex',
+    category: 'orm',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['knex'] ? 'knex' : null,
+  },
+
+  // ── SQLAlchemy ────────────────────────────────────────────────────────────
+  // alembic.ini + Python manifest (requirements.txt / pyproject.toml / Pipfile)
+  // = manifest-level evidence (0.60). alembic.ini alone = config (0.25 < threshold).
+
+  {
+    tech: 'SQLAlchemy',
+    category: 'orm',
+    evidenceType: 'config',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('alembic.ini') ? 'alembic.ini' : null,
+  },
+  {
+    tech: 'SQLAlchemy',
+    category: 'orm',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const hasAlembic = flatFiles.includes('alembic.ini');
+      const hasPython =
+        flatFiles.includes('requirements.txt') ||
+        flatFiles.includes('pyproject.toml') ||
+        flatFiles.includes('Pipfile');
+      return hasAlembic && hasPython ? 'alembic.ini (SQLAlchemy/Alembic)' : null;
+    },
+  },
+
+  // ── Hibernate ─────────────────────────────────────────────────────────────
+  // persistence.xml (JPA standard) or hibernate.cfg.xml (classic config).
+  // pom.xml/build.gradle (0.25 each) + persistence.xml (0.15) = 0.40 < threshold.
+  // Use persistence.xml as manifest-level (0.60) when pom.xml is also present.
+
+  {
+    tech: 'Hibernate',
+    category: 'orm',
+    evidenceType: 'manifest',
+    match: ({ flatFiles, configs }) => {
+      const hasBuildFile = configs.includes('pom.xml') ||
+                           configs.includes('build.gradle') ||
+                           configs.includes('build.gradle.kts');
+      const hasPersistence = flatFiles.some(f => f.endsWith('persistence.xml'));
+      return hasBuildFile && hasPersistence ? 'persistence.xml' : null;
+    },
+  },
+  {
+    tech: 'Hibernate',
+    category: 'orm',
+    evidenceType: 'manifest',
+    match: ({ flatFiles, configs }) => {
+      const hasBuildFile = configs.includes('pom.xml') ||
+                           configs.includes('build.gradle') ||
+                           configs.includes('build.gradle.kts');
+      const hasHibernateCfg = flatFiles.some(f => f.endsWith('hibernate.cfg.xml'));
+      return hasBuildFile && hasHibernateCfg ? 'hibernate.cfg.xml' : null;
+    },
+  },
+
+  // ── Django ORM ────────────────────────────────────────────────────────────
+  // models.py + manage.py = manifest-level evidence (0.60).
+
+  {
+    tech: 'Django ORM',
+    category: 'orm',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const hasManage = flatFiles.includes('manage.py');
+      const hasModels = flatFiles.some(
+        f => f === 'models.py' || f.endsWith('/models.py'),
+      );
+      return hasManage && hasModels ? 'models.py' : null;
+    },
+  },
+
+  // ── Eloquent ──────────────────────────────────────────────────────────────
+  // artisan + app/Models/ directory = manifest-level evidence (0.60).
+
+  {
+    tech: 'Eloquent',
+    category: 'orm',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const hasArtisan = flatFiles.includes('artisan');
+      const hasModels = flatFiles.some(f => f.startsWith('app/Models/'));
+      return hasArtisan && hasModels ? 'app/Models/ (Eloquent)' : null;
+    },
+  },
+
+  // ── Active Record ─────────────────────────────────────────────────────────
+  // Gemfile + db/schema.rb = manifest-level evidence (0.60).
+
+  {
+    tech: 'Active Record',
+    category: 'orm',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const hasGemfile = flatFiles.includes('Gemfile');
+      const hasSchema = flatFiles.includes('db/schema.rb');
+      return hasGemfile && hasSchema ? 'db/schema.rb' : null;
+    },
   },
 
   // ==========================================================================
