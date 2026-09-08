@@ -18,6 +18,19 @@
  *    confidence is combined (capped), never producing duplicate entries.
  *  - Output is ordered by: category rank → confidence desc → name asc.
  *
+ * Frontend technologies detected (Step 4):
+ *   React, Next.js, Vue, Nuxt, Angular, Svelte, SvelteKit, Astro, Remix
+ *
+ * Styling technologies detected (Step 4):
+ *   Tailwind CSS, Sass, Less, Styled Components, Emotion, Bootstrap,
+ *   Material UI, Chakra UI
+ *
+ * False-positive guards:
+ *   - A directory named react/ alone does NOT indicate React.
+ *   - A README mentioning Next.js does NOT indicate Next.js.
+ *   - A directory named next/ alone does NOT indicate Next.js.
+ *   - Plain CSS files are never reported as a technology framework.
+ *
  * @module detectors/technology-stack-detector
  */
 
@@ -213,7 +226,13 @@ const TECH_RULES: TechRule[] = [
       flatFiles.includes('package.json') ? 'package.json' : null,
   },
 
+  // ==========================================================================
+  // FRONTEND FRAMEWORKS
+  // ==========================================================================
+
   // ── React ─────────────────────────────────────────────────────────────────
+  // False-positive guard: a directory named "react/" alone must NOT trigger this.
+  // Evidence must come from package.json deps or explicit .jsx/.tsx files.
 
   {
     tech: 'React',
@@ -230,6 +249,7 @@ const TECH_RULES: TechRule[] = [
       packageManifest?.devDependencies?.['react'] ? 'react' : null,
   },
   {
+    // *.jsx / *.tsx files are supporting evidence only (0.15 alone < threshold).
     tech: 'React',
     category: 'frontend',
     evidenceType: 'file',
@@ -238,6 +258,10 @@ const TECH_RULES: TechRule[] = [
   },
 
   // ── Next.js ───────────────────────────────────────────────────────────────
+  // False-positive guards:
+  //   - A directory named "next/" alone must NOT trigger detection.
+  //   - README mentions are not used as evidence (no text-scanning rules).
+  //   - app/ or pages/ directories are only supporting evidence (< threshold alone).
 
   {
     tech: 'Next.js',
@@ -263,6 +287,7 @@ const TECH_RULES: TechRule[] = [
     },
   },
   {
+    // app/ or pages/ are supporting evidence only — not standalone triggers.
     tech: 'Next.js',
     category: 'frontend',
     evidenceType: 'directory',
@@ -271,6 +296,359 @@ const TECH_RULES: TechRule[] = [
         ? 'app/ or pages/ directory'
         : null,
   },
+
+  // ── Vue ───────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Vue',
+    category: 'frontend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['vue'] ? 'vue' : null,
+  },
+  {
+    tech: 'Vue',
+    category: 'frontend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['vue'] ? 'vue' : null,
+  },
+  {
+    // *.vue SFC files — supporting evidence only (0.15 alone < threshold).
+    tech: 'Vue',
+    category: 'frontend',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f.endsWith('.vue')) ? '*.vue single-file components' : null,
+  },
+
+  // ── Nuxt ──────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Nuxt',
+    category: 'frontend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['nuxt'] ? 'nuxt' : null,
+  },
+  {
+    tech: 'Nuxt',
+    category: 'frontend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['nuxt'] ? 'nuxt' : null,
+  },
+  {
+    tech: 'Nuxt',
+    category: 'frontend',
+    evidenceType: 'config',
+    match: ({ configs }) => {
+      const found = configs.find(c => /^nuxt\.config\.[a-zA-Z0-9]+$/.test(c));
+      return found ?? null;
+    },
+  },
+
+  // ── Angular ───────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Angular',
+    category: 'frontend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@angular/core'] ? '@angular/core' : null,
+  },
+  {
+    tech: 'Angular',
+    category: 'frontend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@angular/core'] ? '@angular/core' : null,
+  },
+  {
+    tech: 'Angular',
+    category: 'frontend',
+    evidenceType: 'config',
+    match: ({ configs }) =>
+      configs.includes('angular.json') ? 'angular.json' : null,
+  },
+
+  // ── Svelte ────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Svelte',
+    category: 'frontend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['svelte'] ? 'svelte' : null,
+  },
+  {
+    tech: 'Svelte',
+    category: 'frontend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['svelte'] ? 'svelte' : null,
+  },
+  {
+    // *.svelte files — supporting evidence only (0.15 alone < threshold).
+    tech: 'Svelte',
+    category: 'frontend',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f.endsWith('.svelte')) ? '*.svelte component files' : null,
+  },
+
+  // ── SvelteKit ─────────────────────────────────────────────────────────────
+  // SvelteKit is a distinct meta-framework from bare Svelte — detected separately.
+
+  {
+    tech: 'SvelteKit',
+    category: 'frontend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@sveltejs/kit'] ? '@sveltejs/kit' : null,
+  },
+  {
+    tech: 'SvelteKit',
+    category: 'frontend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@sveltejs/kit'] ? '@sveltejs/kit' : null,
+  },
+  {
+    tech: 'SvelteKit',
+    category: 'frontend',
+    evidenceType: 'config',
+    match: ({ configs }) => {
+      const found = configs.find(c => /^svelte\.config\.[a-zA-Z0-9]+$/.test(c));
+      return found ?? null;
+    },
+  },
+
+  // ── Astro ─────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Astro',
+    category: 'frontend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['astro'] ? 'astro' : null,
+  },
+  {
+    tech: 'Astro',
+    category: 'frontend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['astro'] ? 'astro' : null,
+  },
+  {
+    tech: 'Astro',
+    category: 'frontend',
+    evidenceType: 'config',
+    match: ({ configs }) => {
+      const found = configs.find(c => /^astro\.config\.[a-zA-Z0-9]+$/.test(c));
+      return found ?? null;
+    },
+  },
+
+  // ── Remix ─────────────────────────────────────────────────────────────────
+  // Modern Remix (v2+) uses @remix-run/react + @remix-run/node.
+
+  {
+    tech: 'Remix',
+    category: 'frontend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@remix-run/react'] ? '@remix-run/react' : null,
+  },
+  {
+    tech: 'Remix',
+    category: 'frontend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@remix-run/react'] ? '@remix-run/react' : null,
+  },
+  {
+    tech: 'Remix',
+    category: 'frontend',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@remix-run/node'] ? '@remix-run/node' : null,
+  },
+  {
+    tech: 'Remix',
+    category: 'frontend',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@remix-run/node'] ? '@remix-run/node' : null,
+  },
+
+  // ==========================================================================
+  // STYLING
+  // ==========================================================================
+
+  // ── Tailwind CSS ──────────────────────────────────────────────────────────
+
+  {
+    tech: 'Tailwind CSS',
+    category: 'styling',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['tailwindcss'] ? 'tailwindcss' : null,
+  },
+  {
+    tech: 'Tailwind CSS',
+    category: 'styling',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['tailwindcss'] ? 'tailwindcss' : null,
+  },
+  {
+    tech: 'Tailwind CSS',
+    category: 'styling',
+    evidenceType: 'config',
+    match: ({ configs }) => {
+      const found = configs.find(c => /^tailwind\.config\.[a-zA-Z0-9]+$/.test(c));
+      return found ?? null;
+    },
+  },
+
+  // ── Sass ──────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Sass',
+    category: 'styling',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['sass'] ? 'sass' : null,
+  },
+  {
+    tech: 'Sass',
+    category: 'styling',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['sass'] ? 'sass' : null,
+  },
+  {
+    // *.scss files — supporting evidence only (0.15 alone < threshold).
+    tech: 'Sass',
+    category: 'styling',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f.endsWith('.scss')) ? '*.scss stylesheets' : null,
+  },
+
+  // ── Less ──────────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Less',
+    category: 'styling',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['less'] ? 'less' : null,
+  },
+  {
+    tech: 'Less',
+    category: 'styling',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['less'] ? 'less' : null,
+  },
+  {
+    tech: 'Less',
+    category: 'styling',
+    evidenceType: 'file',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f.endsWith('.less')) ? '*.less stylesheets' : null,
+  },
+
+  // ── Styled Components ─────────────────────────────────────────────────────
+
+  {
+    tech: 'Styled Components',
+    category: 'styling',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['styled-components'] ? 'styled-components' : null,
+  },
+  {
+    tech: 'Styled Components',
+    category: 'styling',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['styled-components'] ? 'styled-components' : null,
+  },
+
+  // ── Emotion ───────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Emotion',
+    category: 'styling',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@emotion/react'] ? '@emotion/react' : null,
+  },
+  {
+    tech: 'Emotion',
+    category: 'styling',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@emotion/react'] ? '@emotion/react' : null,
+  },
+
+  // ── Bootstrap ─────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Bootstrap',
+    category: 'styling',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['bootstrap'] ? 'bootstrap' : null,
+  },
+  {
+    tech: 'Bootstrap',
+    category: 'styling',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['bootstrap'] ? 'bootstrap' : null,
+  },
+
+  // ── Material UI ───────────────────────────────────────────────────────────
+
+  {
+    tech: 'Material UI',
+    category: 'styling',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@mui/material'] ? '@mui/material' : null,
+  },
+  {
+    tech: 'Material UI',
+    category: 'styling',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@mui/material'] ? '@mui/material' : null,
+  },
+
+  // ── Chakra UI ─────────────────────────────────────────────────────────────
+
+  {
+    tech: 'Chakra UI',
+    category: 'styling',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@chakra-ui/react'] ? '@chakra-ui/react' : null,
+  },
+  {
+    tech: 'Chakra UI',
+    category: 'styling',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@chakra-ui/react'] ? '@chakra-ui/react' : null,
+  },
+
+  // ==========================================================================
+  // PACKAGE MANAGERS
+  // ==========================================================================
 
   // ── npm ───────────────────────────────────────────────────────────────────
 
