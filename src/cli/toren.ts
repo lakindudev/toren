@@ -73,7 +73,8 @@ Fast Repository Discovery CLI
   --scripts           Show available package scripts only
   --summary           Show project summary only
   --important-files   Show important files only
-  --health            Show project health observations only
+  --health            Show project health observations
+  --tech-stack        Show detected technology stack only
   --include-hidden    Include hidden files and folders
   --all, -a           Show complete directory tree without limits
   --max-files <n>     Set scan file limit
