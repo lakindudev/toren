@@ -40,6 +40,23 @@
  *   Prisma, Drizzle, TypeORM, Sequelize, Mongoose, Knex,
  *   SQLAlchemy, Hibernate, Django ORM, Eloquent, Active Record
  *
+ * Testing frameworks detected (Step 6):
+ *   Jest, Vitest, Mocha, Playwright, Cypress, Testing Library,
+ *   Pytest, JUnit
+ *
+ * Build tools detected (Step 6):
+ *   Vite, Webpack, Rollup, esbuild
+ *
+ * Quality tools detected (Step 6):
+ *   ESLint, Prettier, Biome, Stylelint
+ *
+ * Container tools detected (Step 6):
+ *   Docker, Docker Compose
+ *
+ * Deployment tools detected (Step 6):
+ *   Vercel, Netlify, Fly.io, Railway, Render,
+ *   Serverless Framework, AWS SAM
+ *
  * False-positive / safety guards:
  *   - Directory names alone never trigger framework detection.
  *   - .env / secret files are NEVER read or scanned.
@@ -1377,6 +1394,527 @@ const TECH_RULES: TechRule[] = [
         ? (flatFiles.includes('bun.lockb') ? 'bun.lockb' : 'bun.lock')
         : null,
   },
+  // ==========================================================================
+  // TESTING FRAMEWORKS
+  // ==========================================================================
+  // ── Jest ─────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Jest',
+    category: 'testing',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['jest'] ? 'jest' : null,
+  },
+  {
+    tech: 'Jest',
+    category: 'testing',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['jest'] ? 'jest' : null,
+  },
+  {
+    tech: 'Jest',
+    category: 'testing',
+    evidenceType: 'manifest',
+    match: ({ configs }) => {
+      const found = configs.find(c => /^jest\.config\.[a-zA-Z0-9]+$/.test(c));
+      return found ?? null;
+    },
+  },
+  {
+    tech: 'Jest',
+    category: 'testing',
+    evidenceType: 'script',
+    match: ({ scripts }) =>
+      scripts.some(s => /\bjest\b/.test(s.command)) ? 'jest script' : null,
+  },
+
+  // ── Vitest ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Vitest',
+    category: 'testing',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['vitest'] ? 'vitest' : null,
+  },
+  {
+    tech: 'Vitest',
+    category: 'testing',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['vitest'] ? 'vitest' : null,
+  },
+  {
+    tech: 'Vitest',
+    category: 'testing',
+    evidenceType: 'manifest',
+    match: ({ configs }) => {
+      const found = configs.find(c => /^vitest\.config\.[a-zA-Z0-9]+$/.test(c));
+      return found ?? null;
+    },
+  },
+
+  // ── Mocha ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Mocha',
+    category: 'testing',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['mocha'] ? 'mocha' : null,
+  },
+  {
+    tech: 'Mocha',
+    category: 'testing',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['mocha'] ? 'mocha' : null,
+  },
+  {
+    tech: 'Mocha',
+    category: 'testing',
+    evidenceType: 'manifest',
+    match: ({ configs }) =>
+      configs.includes('.mocharc.yml') || configs.includes('.mocharc.json') ||
+      configs.includes('.mocharc.js') || configs.includes('.mocharc.cjs')
+        ? '.mocharc.*'
+        : null,
+  },
+
+  // ── Playwright ────────────────────────────────────────────────────────────────
+  {
+    tech: 'Playwright',
+    category: 'testing',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@playwright/test'] ? '@playwright/test' : null,
+  },
+  {
+    tech: 'Playwright',
+    category: 'testing',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@playwright/test'] ? '@playwright/test' : null,
+  },
+  {
+    tech: 'Playwright',
+    category: 'testing',
+    evidenceType: 'manifest',
+    match: ({ configs, flatFiles }) => {
+      const found = configs.find(c => /^playwright\.config\.[a-zA-Z0-9]+$/.test(c)) ??
+        flatFiles.find(f => /^playwright\.config\.[a-zA-Z0-9]+$/.test(f.split('/').pop() ?? ''));
+      return found ? 'playwright.config.*' : null;
+    },
+  },
+
+  // ── Cypress ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Cypress',
+    category: 'testing',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['cypress'] ? 'cypress' : null,
+  },
+  {
+    tech: 'Cypress',
+    category: 'testing',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['cypress'] ? 'cypress' : null,
+  },
+  {
+    tech: 'Cypress',
+    category: 'testing',
+    evidenceType: 'manifest',
+    match: ({ configs, flatFiles }) => {
+      const found = configs.find(c => /^cypress\.config\.[a-zA-Z0-9]+$/.test(c)) ??
+        flatFiles.find(f => /^cypress\.config\.[a-zA-Z0-9]+$/.test(f.split('/').pop() ?? ''));
+      return found ? 'cypress.config.*' : null;
+    },
+  },
+
+  // ── Testing Library ──────────────────────────────────────────────────────────
+  {
+    tech: 'Testing Library',
+    category: 'testing',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) => {
+      const devDeps = packageManifest?.devDependencies ?? {};
+      const found = Object.keys(devDeps).find(k => k.startsWith('@testing-library/'));
+      return found ?? null;
+    },
+  },
+  {
+    tech: 'Testing Library',
+    category: 'testing',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) => {
+      const deps = packageManifest?.dependencies ?? {};
+      const found = Object.keys(deps).find(k => k.startsWith('@testing-library/'));
+      return found ?? null;
+    },
+  },
+
+  // ── Pytest ────────────────────────────────────────────────────────────────────
+  // pytest.ini or pyproject.toml + a Python project = manifest evidence (0.60)
+  {
+    tech: 'Pytest',
+    category: 'testing',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const hasPytest = flatFiles.includes('pytest.ini') || flatFiles.includes('setup.cfg');
+      const hasPython = flatFiles.includes('requirements.txt') ||
+        flatFiles.includes('pyproject.toml') ||
+        flatFiles.includes('Pipfile');
+      return hasPytest && hasPython ? 'pytest.ini' : null;
+    },
+  },
+  {
+    tech: 'Pytest',
+    category: 'testing',
+    evidenceType: 'file',
+    match: ({ flatFiles }) => {
+      // conftest.py is a pytest-specific file
+      return flatFiles.some(f => f === 'conftest.py' || f.endsWith('/conftest.py'))
+        ? 'conftest.py'
+        : null;
+    },
+  },
+
+  // ── JUnit ────────────────────────────────────────────────────────────────────
+  // JUnit is detected via Java build files + test source patterns
+  {
+    tech: 'JUnit',
+    category: 'testing',
+    evidenceType: 'manifest',
+    match: ({ flatFiles, configs }) => {
+      const hasBuild = configs.includes('pom.xml') ||
+        configs.includes('build.gradle') ||
+        configs.includes('build.gradle.kts');
+      const hasTestJava = flatFiles.some(f => f.endsWith('Test.java') || f.endsWith('Tests.java'));
+      return hasBuild && hasTestJava ? 'Test.java' : null;
+    },
+  },
+
+  // ==========================================================================
+  // BUILD TOOLS
+  // ==========================================================================
+  // ── Vite ─────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Vite',
+    category: 'build',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['vite'] ? 'vite' : null,
+  },
+  {
+    tech: 'Vite',
+    category: 'build',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['vite'] ? 'vite' : null,
+  },
+  {
+    tech: 'Vite',
+    category: 'build',
+    evidenceType: 'manifest',
+    match: ({ configs }) => {
+      const found = configs.find(c => /^vite\.config\.[a-zA-Z0-9]+$/.test(c));
+      return found ?? null;
+    },
+  },
+
+  // ── Webpack ───────────────────────────────────────────────────────────────────
+  // IMPORTANT: Only detect explicit usage. Do NOT detect webpack just because
+  // a framework may use it internally (e.g. Next.js uses webpack internally).
+  {
+    tech: 'Webpack',
+    category: 'build',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['webpack'] ? 'webpack' : null,
+  },
+  {
+    tech: 'Webpack',
+    category: 'build',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['webpack'] ? 'webpack' : null,
+  },
+  {
+    tech: 'Webpack',
+    category: 'build',
+    evidenceType: 'manifest',
+    match: ({ configs, flatFiles }) => {
+      const found = configs.find(c => /^webpack\.config\.[a-zA-Z0-9]+$/.test(c)) ??
+        flatFiles.find(f => /^webpack\.config\.[a-zA-Z0-9]+$/.test(f.split('/').pop() ?? ''));
+      return found ? 'webpack.config.*' : null;
+    },
+  },
+
+  // ── Rollup ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Rollup',
+    category: 'build',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['rollup'] ? 'rollup' : null,
+  },
+  {
+    tech: 'Rollup',
+    category: 'build',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['rollup'] ? 'rollup' : null,
+  },
+  {
+    tech: 'Rollup',
+    category: 'build',
+    evidenceType: 'manifest',
+    match: ({ configs, flatFiles }) => {
+      const found = configs.find(c => /^rollup\.config\.[a-zA-Z0-9]+$/.test(c)) ??
+        flatFiles.find(f => /^rollup\.config\.[a-zA-Z0-9]+$/.test(f.split('/').pop() ?? ''));
+      return found ? 'rollup.config.*' : null;
+    },
+  },
+
+  // ── esbuild ───────────────────────────────────────────────────────────────────
+  {
+    tech: 'esbuild',
+    category: 'build',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['esbuild'] ? 'esbuild' : null,
+  },
+  {
+    tech: 'esbuild',
+    category: 'build',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['esbuild'] ? 'esbuild' : null,
+  },
+
+  // ==========================================================================
+  // QUALITY TOOLS
+  // ==========================================================================
+  // ── ESLint ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'ESLint',
+    category: 'quality',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['eslint'] ? 'eslint' : null,
+  },
+  {
+    tech: 'ESLint',
+    category: 'quality',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['eslint'] ? 'eslint' : null,
+  },
+  {
+    tech: 'ESLint',
+    category: 'quality',
+    evidenceType: 'manifest',
+    match: ({ configs, flatFiles }) => {
+      // eslint.config.* (flat config, v9+)
+      const flatConfig = configs.find(c => /^eslint\.config\.[a-zA-Z0-9]+$/.test(c));
+      if (flatConfig) return flatConfig;
+      // .eslintrc* legacy configs
+      const legacyConfig = flatFiles.find(f => {
+        const base = f.split('/').pop() ?? '';
+        return /^\.eslintrc(\.json|\.js|\.cjs|\.yml|\.yaml|)$/.test(base);
+      });
+      return legacyConfig ? '.eslintrc*' : null;
+    },
+  },
+
+  // ── Prettier ──────────────────────────────────────────────────────────────────
+  {
+    tech: 'Prettier',
+    category: 'quality',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['prettier'] ? 'prettier' : null,
+  },
+  {
+    tech: 'Prettier',
+    category: 'quality',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['prettier'] ? 'prettier' : null,
+  },
+  {
+    tech: 'Prettier',
+    category: 'quality',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const found = flatFiles.find(f => {
+        const base = f.split('/').pop() ?? '';
+        return /^\.prettierrc(\.json|\.js|\.cjs|\.yml|\.yaml|)$/.test(base);
+      });
+      return found ? '.prettierrc*' : null;
+    },
+  },
+
+  // ── Biome ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Biome',
+    category: 'quality',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['@biomejs/biome'] ? '@biomejs/biome' : null,
+  },
+  {
+    tech: 'Biome',
+    category: 'quality',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['@biomejs/biome'] ? '@biomejs/biome' : null,
+  },
+  {
+    tech: 'Biome',
+    category: 'quality',
+    evidenceType: 'manifest',
+    match: ({ configs, flatFiles }) =>
+      configs.includes('biome.json') || flatFiles.includes('biome.json')
+        ? 'biome.json'
+        : null,
+  },
+
+  // ── Stylelint ─────────────────────────────────────────────────────────────────
+  {
+    tech: 'Stylelint',
+    category: 'quality',
+    evidenceType: 'devDependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.devDependencies?.['stylelint'] ? 'stylelint' : null,
+  },
+  {
+    tech: 'Stylelint',
+    category: 'quality',
+    evidenceType: 'dependency',
+    match: ({ packageManifest }) =>
+      packageManifest?.dependencies?.['stylelint'] ? 'stylelint' : null,
+  },
+  {
+    tech: 'Stylelint',
+    category: 'quality',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) => {
+      const found = flatFiles.find(f => {
+        const base = f.split('/').pop() ?? '';
+        return /^\.stylelintrc(\.json|\.js|\.cjs|\.yml|\.yaml|)$/.test(base) || base === 'stylelint.config.js' || base === 'stylelint.config.cjs';
+      });
+      return found ? '.stylelintrc*' : null;
+    },
+  },
+
+  // ==========================================================================
+  // CONTAINER
+  // ==========================================================================
+  // ── Docker ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Docker',
+    category: 'container',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => f === 'Dockerfile' || /\/Dockerfile$/.test(f) || /^Dockerfile\.[a-zA-Z0-9]+$/.test(f.split('/').pop() ?? ''))
+        ? 'Dockerfile'
+        : null,
+  },
+
+  // ── Docker Compose ────────────────────────────────────────────────────────────
+  {
+    tech: 'Docker Compose',
+    category: 'container',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.some(f => {
+        const base = f.split('/').pop() ?? '';
+        return ['docker-compose.yml', 'docker-compose.yaml', 'compose.yml', 'compose.yaml'].includes(base);
+      })
+        ? 'docker-compose.yml'
+        : null,
+  },
+
+  // ==========================================================================
+  // DEPLOYMENT
+  // ==========================================================================
+  // ── Vercel ────────────────────────────────────────────────────────────────────
+  // Only detect from explicit vercel.json — NOT from Next.js alone.
+  {
+    tech: 'Vercel',
+    category: 'deployment',
+    evidenceType: 'manifest',
+    match: ({ configs, flatFiles }) =>
+      configs.includes('vercel.json') || flatFiles.includes('vercel.json')
+        ? 'vercel.json'
+        : null,
+  },
+
+  // ── Netlify ───────────────────────────────────────────────────────────────────
+  {
+    tech: 'Netlify',
+    category: 'deployment',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('netlify.toml') ? 'netlify.toml' : null,
+  },
+
+  // ── Fly.io ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Fly.io',
+    category: 'deployment',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('fly.toml') ? 'fly.toml' : null,
+  },
+
+  // ── Railway ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Railway',
+    category: 'deployment',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('railway.json') || flatFiles.includes('railway.toml')
+        ? (flatFiles.includes('railway.json') ? 'railway.json' : 'railway.toml')
+        : null,
+  },
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+  {
+    tech: 'Render',
+    category: 'deployment',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('render.yaml') || flatFiles.includes('render.yml')
+        ? (flatFiles.includes('render.yaml') ? 'render.yaml' : 'render.yml')
+        : null,
+  },
+
+  // ── Serverless Framework ──────────────────────────────────────────────────────
+  {
+    tech: 'Serverless Framework',
+    category: 'deployment',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('serverless.yml') || flatFiles.includes('serverless.yaml') ||
+      flatFiles.includes('serverless.json') || flatFiles.includes('serverless.ts')
+        ? 'serverless.yml'
+        : null,
+  },
+
+  // ── AWS SAM ───────────────────────────────────────────────────────────────────
+  {
+    tech: 'AWS SAM',
+    category: 'deployment',
+    evidenceType: 'manifest',
+    match: ({ flatFiles }) =>
+      flatFiles.includes('template.yaml') || flatFiles.includes('template.yml')
+        ? (flatFiles.includes('template.yaml') ? 'template.yaml' : 'template.yml')
+        : null,
+  },
+
 ];
 
 // ---------------------------------------------------------------------------
