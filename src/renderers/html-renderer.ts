@@ -844,6 +844,87 @@ function renderProjectInfo(projectInfo: ProjectInfo | null, packageManager: Pack
   </section>`;
 }
 
+/**
+ * Render the technology stack section.
+ *
+ * @param {import('../types/index.js').TechnologyStack} stack
+ * @returns {string}
+ */
+function renderTechnologyStack(stack: import('../types/index.js').TechnologyStack | undefined): string {
+  if (!stack || stack.technologies.length === 0) {
+    return `
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">${icon.code()}</div>
+        <h2 class="section-title">Technology Stack</h2>
+      </div>
+      <div class="section-body">
+        <p class="empty-msg">No technologies detected.</p>
+      </div>
+    </section>`;
+  }
+
+  const STACK_CATEGORY_ORDER = [
+    'language', 'runtime', 'frontend', 'backend', 'styling',
+    'database', 'orm', 'testing', 'build', 'quality',
+    'container', 'deployment', 'package-manager', 'other',
+  ];
+  const CATEGORY_LABELS: Record<string, string> = {
+    'language':        'Language',
+    'runtime':         'Runtime',
+    'frontend':        'Frontend',
+    'backend':         'Backend',
+    'styling':         'Styling',
+    'database':        'Database',
+    'orm':             'ORM',
+    'testing':         'Testing',
+    'build':           'Build',
+    'quality':         'Quality',
+    'container':       'Container',
+    'deployment':      'Deployment',
+    'package-manager': 'Package Manager',
+    'other':           'Other',
+  };
+
+  const grouped = new Map<string, string[]>();
+  for (const cat of STACK_CATEGORY_ORDER) {
+    const techs = stack.technologies
+      .filter(t => t.category === cat)
+      .sort((a, b) => {
+        const confDiff = b.confidence - a.confidence;
+        return confDiff !== 0 ? confDiff : a.name.localeCompare(b.name);
+      })
+      .map(t => t.name);
+    if (techs.length > 0) grouped.set(cat, techs);
+  }
+  const otherTechs = stack.technologies
+    .filter(t => !STACK_CATEGORY_ORDER.includes(t.category))
+    .map(t => t.name);
+  if (otherTechs.length > 0) grouped.set('other', otherTechs);
+
+  let body = '';
+  for (const [cat, names] of grouped) {
+    const label = CATEGORY_LABELS[cat] ?? cat;
+    body += `<div style="margin-bottom: 1rem;">
+      <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem;">${esc(label)}</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        ${names.map(name => `<span style="background: var(--bg); border: 1px solid var(--border); padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.85rem;">${esc(name)}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.code()}</div>
+      <h2 class="section-title">Technology Stack</h2>
+    </div>
+    <div class="section-body">
+      ${body}
+    </div>
+  </section>`;
+}
+
 function renderImportantFiles(importantFiles: ImportantFile[]): string {
   const count = importantFiles.length;
 

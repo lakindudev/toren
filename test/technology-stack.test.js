@@ -716,3 +716,44 @@ describe('detectTechnologyStack — scan() integration', () => {
   });
 
 });
+
+
+describe('False Positive Protections (Step 9)', () => {
+  test('Next.js alone without vercel.json does not detect Vercel', () => {
+    const res = detectTechnologyStack(emptyCtx({ 
+      packageManifest: { dependencies: { next: '^13.0.0' } } 
+    }));
+    assert.ok(res.technologies.find(x => x.name === 'Next.js'), 'Next.js should be detected');
+    assert.equal(res.technologies.find(x => x.name === 'Vercel'), undefined, 'Vercel should not be detected from Next.js alone');
+  });
+
+  test('react/ dir without dep does not detect React', () => {
+    const res = detectTechnologyStack(emptyCtx({ flatFiles: ['react/index.js'] }));
+    const t = res.technologies.find(x => x.name === 'React');
+    assert.equal(t, undefined);
+  });
+
+  test('redis/ dir without dep does not detect Redis', () => {
+    const res = detectTechnologyStack(emptyCtx({ flatFiles: ['redis/cache.js'] }));
+    const t = res.technologies.find(x => x.name === 'Redis');
+    assert.equal(t, undefined);
+  });
+
+  test('test/ dir without framework dep does not detect Jest/Mocha', () => {
+    const res = detectTechnologyStack(emptyCtx({ flatFiles: ['test/index.js'] }));
+    const t = res.technologies.find(x => x.category === 'testing');
+    assert.equal(t, undefined);
+  });
+
+  test('docker/ dir without Dockerfile does not detect Docker', () => {
+    const res = detectTechnologyStack(emptyCtx({ flatFiles: ['docker/start.sh'] }));
+    const t = res.technologies.find(x => x.name === 'Docker');
+    assert.equal(t, undefined);
+  });
+
+  test('README mention only does not detect technology', () => {
+    // README is not used as evidence in the engine
+    const res = detectTechnologyStack(emptyCtx({ flatFiles: ['README.md'] }));
+    assert.equal(res.technologies.length, 0);
+  });
+});
