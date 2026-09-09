@@ -347,6 +347,57 @@ export function render(result: ScanResult, options: { cwd?: string; showAllFiles
   }
   console.log('');
 
+
+  // ── Technology Stack ──────────────────────────────────────────────────────
+  section('Technology Stack');
+  const stack = result.technologyStack;
+  if (!stack || stack.technologies.length === 0) {
+    console.log(paint('No technologies detected.', C.dim));
+  } else {
+    const STACK_CATEGORY_ORDER = [
+      'language', 'runtime', 'frontend', 'backend', 'styling',
+      'database', 'orm', 'testing', 'build', 'quality',
+      'container', 'deployment', 'package-manager', 'other',
+    ];
+    const CATEGORY_LABELS: Record<string, string> = {
+      'language':        'Language',
+      'runtime':         'Runtime',
+      'frontend':        'Frontend',
+      'backend':         'Backend',
+      'styling':         'Styling',
+      'database':        'Database',
+      'orm':             'ORM',
+      'testing':         'Testing',
+      'build':           'Build',
+      'quality':         'Quality',
+      'container':       'Container',
+      'deployment':      'Deployment',
+      'package-manager': 'Package Manager',
+      'other':           'Other',
+    };
+    const grouped = new Map<string, string[]>();
+    for (const cat of STACK_CATEGORY_ORDER) {
+      const techs = stack.technologies
+        .filter(t => t.category === cat)
+        .sort((a, b) => {
+          const confDiff = b.confidence - a.confidence;
+          return confDiff !== 0 ? confDiff : a.name.localeCompare(b.name);
+        })
+        .map(t => t.name);
+      if (techs.length > 0) grouped.set(cat, techs);
+    }
+    const otherTechs = stack.technologies
+      .filter(t => !STACK_CATEGORY_ORDER.includes(t.category))
+      .map(t => t.name);
+    if (otherTechs.length > 0) grouped.set('other', otherTechs);
+
+    for (const [cat, names] of grouped) {
+      const label = CATEGORY_LABELS[cat] ?? cat;
+      console.log(`${paint(label.padEnd(15), C.dim)} ${paint(names.join(' · '), C.white)}`);
+    }
+  }
+  console.log('');
+
   // ── Structure Preview ─────────────────────────────────────────────────────
   section('Folder Structure');
 

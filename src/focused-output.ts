@@ -29,9 +29,11 @@ const EMPTY = {
   scripts:        'No package scripts detected.',
   importantFiles: 'No important files detected.',
   health:         'No project health observations available.',
+  techStack:      'No technologies detected.',
 };
 
 export const FOCUSED_FLAGS = [
+  '--tech-stack',
   '--project-type',
   '--frameworks',
   '--entry-points',
@@ -130,7 +132,67 @@ export function renderFocusedMode(mode: string, result: ScanResult): void {
       break;
     }
 
-    case '--structure': {
+      case '--tech-stack': {
+    const stack = result.technologyStack;
+    const STACK_CATEGORY_ORDER = [
+      'language', 'runtime', 'frontend', 'backend', 'styling',
+      'database', 'orm', 'testing', 'build', 'quality',
+      'container', 'deployment', 'package-manager', 'other',
+    ];
+    const CATEGORY_LABELS: Record<string, string> = {
+      'language':        'Language',
+      'runtime':         'Runtime',
+      'frontend':        'Frontend',
+      'backend':         'Backend',
+      'styling':         'Styling',
+      'database':        'Database',
+      'orm':             'ORM',
+      'testing':         'Testing',
+      'build':           'Build',
+      'quality':         'Quality',
+      'container':       'Container',
+      'deployment':      'Deployment',
+      'package-manager': 'Package Manager',
+      'other':           'Other',
+    };
+
+    if (!stack || stack.technologies.length === 0) {
+      printSectionHeader('Technology Stack');
+      console.log(`\x1b[2m${EMPTY.techStack}\x1b[0m`);
+      break;
+    }
+
+    const grouped = new Map<string, string[]>();
+    for (const cat of STACK_CATEGORY_ORDER) {
+      const techs = stack.technologies
+        .filter(t => t.category === cat)
+        .sort((a, b) => {
+          const confDiff = b.confidence - a.confidence;
+          return confDiff !== 0 ? confDiff : a.name.localeCompare(b.name);
+        })
+        .map(t => t.name);
+      if (techs.length > 0) grouped.set(cat, techs);
+    }
+
+    const otherTechs = stack.technologies
+      .filter(t => !STACK_CATEGORY_ORDER.includes(t.category))
+      .map(t => t.name);
+    if (otherTechs.length > 0) grouped.set('other', otherTechs);
+
+    printSectionHeader('Technology Stack');
+
+    for (const [cat, names] of grouped) {
+      const label = CATEGORY_LABELS[cat] ?? cat;
+      console.log(`\x1b[1m${label}\x1b[0m`);
+      for (const name of names) {
+        console.log(`  ${name}`);
+      }
+      console.log('');
+    }
+    break;
+  }
+
+  case '--structure': {
       renderStructure(result);
       break;
     }

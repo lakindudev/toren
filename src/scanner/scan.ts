@@ -1,4 +1,3 @@
-import type { ScanResult, DirNode, TreeNode, FileNode, CliOptions } from "../types/index.js";
 /**
  * @fileoverview Toren CLI — Codebase Scanner (Core Logic)
  *
@@ -19,14 +18,16 @@ import type { ScanResult, DirNode, TreeNode, FileNode, CliOptions } from "../typ
  *  - AI explanation integrations
  */
 
+import type { ScanResult, DirNode, TreeNode, FileNode, CliOptions } from "../types/index.js";
 import fs from 'node:fs';
 import path from 'node:path';
-import { detectConfigs }         from '../detectors/config-detector.js';
-import { detectScripts }         from '../detectors/script-detector.js';
-import { detectPackageManager }  from '../detectors/package-manager-detector.js';
-import { detectImportantFiles }  from '../detectors/important-files-detector.js';
-import { detectProjectInfo }     from '../detectors/project-info-detector.js';
-import { detectHealth }          from '../detectors/health-detector.js';
+import { detectConfigs }             from '../detectors/config-detector.js';
+import { detectScripts }             from '../detectors/script-detector.js';
+import { detectPackageManager }      from '../detectors/package-manager-detector.js';
+import { detectImportantFiles }      from '../detectors/important-files-detector.js';
+import { detectProjectInfo }         from '../detectors/project-info-detector.js';
+import { detectHealth }              from '../detectors/health-detector.js';
+import { detectTechnologyStack }     from '../detectors/technology-stack-detector.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -219,33 +220,49 @@ function walkDirectory(dirPath: string, rootPath: string, flatFiles: string[], i
 /**
  * Detect the project type by checking for known marker files in `rootPath`.
  *
- * Returns the label of the first matched marker, or `'Unknown'` if none match.
+ * Returns both the type label and the parsed `packageManifest` (only populated
+ * for Node.js projects) so callers can reuse it without a second disk read.
  *
  * @param {string} rootPath - Absolute path to the project root
- * @returns {string}
+ * @returns {{ projectType: string, packageManifest: object | null }}
  */
-function detectProjectType(rootPath: string): string {
+function detectProjectType(rootPath: string): {
+  projectType: string;
+  packageManifest: {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+    peerDependencies?: Record<string, string>;
+  } | null;
+} {
   for (const { marker, label } of PROJECT_TYPE_MARKERS) {
     const markerPath = path.join(rootPath, marker);
     if (fs.existsSync(markerPath)) {
       // Refine Node.js projects by inspecting package.json dependencies.
       if (marker === 'package.json') {
-        return refineNodeProjectType(markerPath);
+        const { label: refinedLabel, manifest } = readAndRefineNodeProject(markerPath);
+        return { projectType: refinedLabel, packageManifest: manifest };
       }
-      return label;
+      return { projectType: label, packageManifest: null };
     }
   }
-  return 'Unknown';
+  return { projectType: 'Unknown', packageManifest: null };
 }
 
 /**
- * Read `package.json` and return a more specific label when React / Next / Vue
- * etc. are listed as dependencies.
+ * Read and parse `package.json`, returning both the refined project-type label
+ * and the raw parsed manifest so callers can reuse it without a second read.
  *
  * @param {string} pkgPath - Absolute path to package.json
- * @returns {string}
+ * @returns {{ label: string, manifest: object | null }}
  */
-function refineNodeProjectType(pkgPath: string): string {
+function readAndRefineNodeProject(pkgPath: string): {
+  label: string;
+  manifest: {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+    peerDependencies?: Record<string, string>;
+  } | null;
+} {
   try {
     const raw  = fs.readFileSync(pkgPath, 'utf8');
     const pkg  = JSON.parse(raw);
@@ -255,20 +272,38 @@ function refineNodeProjectType(pkgPath: string): string {
       ...pkg.peerDependencies,
     };
 
-    if (deps['next'])          return 'Next.js';
-    if (deps['nuxt'] || deps['nuxt3']) return 'Nuxt.js';
-    if (deps['react'])         return 'React';
-    if (deps['vue'])           return 'Vue.js';
-    if (deps['@angular/core']) return 'Angular';
-    if (deps['svelte'])        return 'Svelte';
-    if (deps['express'])       return 'Node.js / Express';
-    if (deps['fastify'])       return 'Node.js / Fastify';
-    if (deps['koa'])           return 'Node.js / Koa';
-    if (deps['typescript'])    return 'Node.js / TypeScript';
+    let label = 'Node.js / JavaScript';
+    if (deps['next'])          label = 'Next.js';
+    else if (deps['nuxt'] || deps['nuxt3']) label = 'Nuxt.js';
+    else if (deps['react'])    label = 'React';
+    else if (deps['vue'])      label = 'Vue.js';
+    else if (deps['@angular/core']) label = 'Angular';
+    else if (deps['svelte'])   label = 'Svelte';
+    else if (deps['express'])  label = 'Node.js / Express';
+    else if (deps['fastify'])  label = 'Node.js / Fastify';
+    else if (deps['koa'])      label = 'Node.js / Koa';
+    else if (deps['typescript']) label = 'Node.js / TypeScript';
+
+    return {
+      label,
+      manifest: {
+        dependencies:    pkg.dependencies    ?? undefined,
+        devDependencies: pkg.devDependencies ?? undefined,
+        peerDependencies: pkg.peerDependencies ?? undefined,
+      },
+    };
   } catch {
-    // Malformed package.json — fall through.
+    // Malformed or unreadable package.json — fall through.
   }
-  return 'Node.js / JavaScript';
+  return { label: 'Node.js / JavaScript', manifest: null };
+}
+
+/**
+ * @deprecated Use readAndRefineNodeProject instead.
+ * Kept for any legacy internal callers; delegates to the new function.
+ */
+function refineNodeProjectType(pkgPath: string): string {
+  return readAndRefineNodeProject(pkgPath).label;
 }
 
 // ---------------------------------------------------------------------------
@@ -491,10 +526,17 @@ export function scan(targetPath: string, options: Partial<CliOptions> = {}): Sca
   let tree;
   let projectType = 'Unknown';
   let totalFolders = 0;
-  
+  let packageManifest: {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+    peerDependencies?: Record<string, string>;
+  } | null = null;
+
   if (stat.isDirectory()) {
     tree = walkDirectory(rootPath, rootPath, flatFiles, includeHidden, maxFiles);
-    projectType = detectProjectType(rootPath);
+    const detected = detectProjectType(rootPath);
+    projectType    = detected.projectType;
+    packageManifest = detected.packageManifest;
     // Count all directory nodes in the tree (excluding root itself).
     totalFolders = countFolders(tree) - 1;
     entryPoints = findEntryPoints(projectType, flatFiles, rootPath);
@@ -536,6 +578,17 @@ export function scan(targetPath: string, options: Partial<CliOptions> = {}): Sca
 
   const scanDurationMs = performance.now() - startTime;
 
+  // Assemble technology stack from the already-collected context.
+  // packageManifest is reused from the detectProjectType read — no extra I/O.
+  const technologyStack = detectTechnologyStack({
+    flatFiles,
+    configs,
+    scripts,
+    packageManager,
+    projectType,
+    packageManifest,
+  });
+
   return {
     rootPath,
     projectType,
@@ -546,6 +599,7 @@ export function scan(targetPath: string, options: Partial<CliOptions> = {}): Sca
     importantFiles,
     projectInfo,
     health,
+    technologyStack,
     tree,
     flatFiles,
     totalFolders,
