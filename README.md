@@ -74,6 +74,7 @@ toren --scripts
 toren --summary
 toren --important-files
 toren --health
+toren --stack
 
 # Lifecycle & Help Commands
 toren --help
@@ -96,6 +97,7 @@ toren --uninstall
 | `--summary` | Show project summary only. |
 | `--important-files` | Show important files only. |
 | `--health` | Show project health observations only. |
+| `--stack`, `--tech-stack` | Show detected technology stack only. |
 | `--format <type>` | Output format: `console` (default), `json`, `markdown`, `html`. |
 | `--include-hidden` | Include hidden files and dot-directories in the scan. |
 | `--max-files <n>` | Override the default 50,000-file scan limit. |

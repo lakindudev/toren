@@ -42,15 +42,29 @@ function emptyCtx(overrides = {}) {
 
 describe('--tech-stack CLI flag', () => {
 
-  test('--tech-stack appears in --help output', () => {
+  test('--tech-stack and --stack appear in --help output', () => {
     const res = runCLI('--help');
     assert.equal(res.status, 0);
     assert.match(res.output, /--tech-stack/);
+    assert.match(res.output, /--stack/);
   });
 
   test('--tech-stack on a real TypeScript project shows Technology Stack section', () => {
     const res = runCLI('.');
     assert.equal(res.status, 0);
+  });
+
+  test('--stack alias works identically to --tech-stack', () => {
+    const resTech = runCLI('. --tech-stack');
+    const resStack = runCLI('. --stack');
+    assert.equal(resStack.status, 0);
+    assert.equal(resTech.output, resStack.output);
+  });
+
+  test('--stack and --tech-stack can be used together without conflicting', () => {
+    const res = runCLI('. --stack --tech-stack');
+    assert.equal(res.status, 0);
+    assert.match(res.output, /Technology Stack/);
   });
 
   test('--tech-stack with a TypeScript+ESLint project shows expected categories', () => {

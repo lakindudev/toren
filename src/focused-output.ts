@@ -33,6 +33,7 @@ const EMPTY = {
 };
 
 export const FOCUSED_FLAGS = [
+  '--stack',
   '--tech-stack',
   '--project-type',
   '--frameworks',
@@ -58,7 +59,10 @@ type FocusedModeResult =
 export function getFocusedModeInfo(args: string[]): FocusedModeResult {
   const activeFlags = FOCUSED_FLAGS.filter(flag => args.includes(flag));
   
-  if (activeFlags.length > 1) {
+  // Normalize --tech-stack alias to --stack
+  const normalizedFlags = new Set(activeFlags.map(flag => flag === '--tech-stack' ? '--stack' : flag));
+
+  if (normalizedFlags.size > 1) {
     return {
       error: true,
       title: 'Conflicting options',
@@ -70,7 +74,7 @@ export function getFocusedModeInfo(args: string[]): FocusedModeResult {
 
   return {
     error: false,
-    mode: activeFlags[0] || null
+    mode: normalizedFlags.size > 0 ? Array.from(normalizedFlags)[0] : null
   };
 }
 
@@ -132,7 +136,7 @@ export function renderFocusedMode(mode: string, result: ScanResult): void {
       break;
     }
 
-      case '--tech-stack': {
+      case '--stack': {
     const stack = result.technologyStack;
     const STACK_CATEGORY_ORDER = [
       'language', 'runtime', 'frontend', 'backend', 'styling',

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-09-09
 ### Added
 - Technology Stack detector for Testing, Build, Quality, Container, and Deployment tools.
-- `--tech-stack` CLI flag for focused technology breakdown.
+- `--tech-stack` (and `--stack` alias) CLI flag for focused technology breakdown.
 - Technology Stack section included in JSON, Console, Markdown, and HTML outputs.
 - **Backend Framework Detection**: Detects Node.js (Express, Fastify, NestJS, Koa, Hapi), Python (Django, Flask, FastAPI), Java (Spring Boot), PHP (Laravel), and Ruby (Rails) backends using package dependency and structural file evidence only.
 - **Database Detection**: Detects PostgreSQL, MySQL, MariaDB, SQLite, MongoDB, and Redis from package dependencies and config/schema files. Never reads `.env` files or credentials.
