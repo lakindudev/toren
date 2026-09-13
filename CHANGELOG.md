@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-09-13
+### Changed
+- **Accuracy and Confidence Scoring**: Evidence scoring logic has been centralized and optimized.
+- **Minimum Evidence Requirements**: A secondary guard prevents false-positive detections from weak signals (like config files) if strong signals (like package manager dependencies) are missing.
+- **Deduplication and Determinism**: Evidence lists and technology output order are now guaranteed to be perfectly deterministic and deduplicated.
+- **Renderer Hardening and XSS Protection**: Technology stack output is now fully integrated into Markdown and HTML outputs, with strict escaping applied to protect against XSS vulnerabilities.
+- **Extensive Test Coverage**: Added comprehensive false-positive and deterministic regression test suites. Over 150+ new tests added.
+
+
 ## [1.1.0] - 2026-09-09
 ### Added
 - Technology Stack detector for Testing, Build, Quality, Container, and Deployment tools.
