@@ -160,6 +160,9 @@ export function render(result: ScanResult, options: { cwd?: string } = {}): void
     //    Empty array when the scanned directory is empty.
     structure: (tree?.children || []).map(mapTree),
 
+    // 9. Technology Stack — structured, deduplicated list of detected technologies
+    technologyStack: result.technologyStack || { technologies: [] },
+
     // 9. Backward-compatible summary block — preserved for existing consumers.
     //    Contains the same data under the original field names.
     summary: {

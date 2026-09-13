@@ -1,5 +1,5 @@
 /**
- * @fileoverview Toren — Technology Stack Detector (v1.1.0)
+ * @fileoverview Toren — Technology Stack Detector (v1.1.1)
  *
  * Detects the technology stack of a project using pre-collected scan context.
  * Does NOT re-scan the repository or re-read package.json.
@@ -7,17 +7,23 @@
  * Design contract:
  *  - Consumes only the data already collected by scan() and passed in context.
  *  - Deterministic: same input always produces the same ordered output.
- *  - Confidence model:
- *      dependency / devDependency  → +0.60 (strong)
- *      config file                 → +0.25 (strong supporting)
- *      file / directory evidence   → +0.15 (supporting)
- *      script keyword              → +0.15 (supporting)
- *      manifest                    → +0.15 (supporting)
- *  - Confidence is capped at 1.0.
+ *  - Confidence model (centralized in evidence-weights.ts):
+ *      dependency / devDependency / peerDependency → +0.60 (strong)
+ *      manifest                    → +0.60 (strong)
+ *      config file                 → +0.25 (moderate supporting)
+ *      script keyword              → +0.15 (weak supporting)
+ *      file                        → +0.15 (weak supporting)
+ *      directory                   → +0.15 (weak supporting)
+ *  - Confidence is rounded to 2 decimal places and capped at 1.0.
  *  - Technologies below the CONFIDENCE_THRESHOLD (0.60) are suppressed.
  *  - When multiple rules match the same technology, evidence is merged and
  *    confidence is combined (capped), never producing duplicate entries.
+ *  - Evidence within a technology is deduplicated and sorted deterministically.
+ *  - Files under noise directories (examples/, fixtures/, demo/, samples/)
+ *    are deprioritised for file/directory evidence to reduce false positives
+ *    from nested example projects.
  *  - Output is ordered by: category rank → confidence desc → name asc.
+
  *
  * Frontend technologies detected (Step 4):
  *   React, Next.js, Vue, Nuxt, Angular, Svelte, SvelteKit, Astro, Remix
@@ -68,6 +74,7 @@
  */
 
 
+
 import type {
   Technology,
   TechnologyStack,
@@ -78,6 +85,14 @@ import type {
   ScriptInfo,
 } from '../types/index.js';
 
+import {
+  EVIDENCE_WEIGHTS,
+  getEvidenceWeight,
+  evidenceTypeRank,
+  capConfidence,
+  isStrongEvidence,
+} from './evidence-weights.js';
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -85,17 +100,12 @@ import type {
 /** Minimum confidence required to include a technology in the output. */
 const CONFIDENCE_THRESHOLD = 0.60;
 
-/** Confidence contribution per evidence kind. */
-const SCORE: Record<TechnologyEvidenceType, number> = {
-  dependency:     0.60,
-  devDependency:  0.60,
-  peerDependency: 0.60,
-  config:         0.25,
-  file:           0.15,
-  directory:      0.15,
-  script:         0.15,
-  manifest:       0.60,
-};
+/**
+ * Confidence contribution per evidence kind.
+ * Re-exported from the centralized evidence-weights module.
+ * Kept here as a local alias for rule-level convenience.
+ */
+const SCORE: Record<TechnologyEvidenceType, number> = EVIDENCE_WEIGHTS;
 
 /**
  * Canonical ordering for technology categories.
@@ -164,6 +174,8 @@ interface TechAccumulator {
   category: TechnologyCategory;
   rawScore: number;
   evidence: TechnologyEvidence[];
+  /** True if at least one strong evidence (dep/devDep/peerDep/manifest) was found. */
+  hasStrongEvidence: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +192,16 @@ interface TechRule {
   tech: string;
   category: TechnologyCategory;
   evidenceType: TechnologyEvidenceType;
+  /**
+   * When true (default), this technology will be suppressed unless at least
+   * one strong evidence piece (dependency, devDependency, peerDependency, or
+   * manifest) is present. Set to false only for technologies that are
+   * legitimately identified by structural config files alone (e.g. Docker,
+   * Spring Boot, Django, Rails).
+   *
+   * Default: true (most technologies require strong evidence).
+   */
+  requiresStrongEvidence?: boolean;
   /**
    * Test function: receives the context and returns the matching value
    * (package name, filename, etc.) if the rule fires, or null/undefined
@@ -865,13 +887,16 @@ const TECH_RULES: TechRule[] = [
   },
 
   // ── Spring Boot ───────────────────────────────────────────────────────────
-  // pom.xml and build.gradle are recognised by detectConfigs (root-level only).
+  // pom.xml and build.gradle are root-level Java build files — structural signals.
   // *Application.java is the canonical Spring Boot entry-point convention.
+  // requiresStrongEvidence: false — Spring Boot is legitimately identified by
+  // build files alone (Java projects have no package.json equivalent).
 
   {
     tech: 'Spring Boot',
     category: 'backend',
     evidenceType: 'config',
+    requiresStrongEvidence: false,
     match: ({ configs }) =>
       configs.includes('pom.xml') ? 'pom.xml' : null,
   },
@@ -879,6 +904,7 @@ const TECH_RULES: TechRule[] = [
     tech: 'Spring Boot',
     category: 'backend',
     evidenceType: 'config',
+    requiresStrongEvidence: false,
     match: ({ configs }) =>
       configs.includes('build.gradle') || configs.includes('build.gradle.kts')
         ? (configs.includes('build.gradle') ? 'build.gradle' : 'build.gradle.kts')
@@ -888,6 +914,7 @@ const TECH_RULES: TechRule[] = [
     tech: 'Spring Boot',
     category: 'backend',
     evidenceType: 'file',
+    requiresStrongEvidence: false,
     match: ({ flatFiles }) =>
       flatFiles.some(f => f.endsWith('Application.java'))
         ? 'Application.java'
@@ -1926,15 +1953,68 @@ function techKey(name: string): string {
   return name.toLowerCase().replace(/[\s./]/g, '-');
 }
 
-/** Compute confidence from raw score, capped at 1.0. */
+/**
+ * Compute confidence from raw score.
+ * Delegates to capConfidence() for consistent rounding and capping.
+ * Kept as a named wrapper for clarity in the engine.
+ */
 function toConfidence(rawScore: number): number {
-  return Math.min(rawScore, 1.0);
+  return capConfidence(rawScore);
 }
 
 /** Category sort rank (lower = first). */
 function categoryRank(cat: TechnologyCategory): number {
   const idx = CATEGORY_ORDER.indexOf(cat);
   return idx === -1 ? CATEGORY_ORDER.length : idx;
+}
+
+/**
+ * Noise directories whose files should not produce standalone file/directory
+ * evidence. Package manifest signals (dependencies, configs, manifests) are
+ * still respected globally.
+ *
+ * These paths are treated as low-priority because they commonly contain
+ * nested example or fixture projects that do not represent the root stack.
+ */
+const NOISE_DIR_PREFIXES: readonly string[] = [
+  'example/',
+  'examples/',
+  'fixture/',
+  'fixtures/',
+  'demo/',
+  'demos/',
+  'sample/',
+  'samples/',
+];
+
+/**
+ * Returns true if a file path lives under a noise directory.
+ * Only applies to file and directory evidence — package.json signals are
+ * always root-level and unaffected.
+ */
+function isNoisePath(filePath: string): boolean {
+  return NOISE_DIR_PREFIXES.some(prefix => filePath.startsWith(prefix));
+}
+
+/**
+ * Return a filtered copy of flatFiles that excludes noise-directory paths.
+ * Used to produce a "root-signal-only" view for file/directory evidence.
+ */
+function rootOnlyFiles(flatFiles: string[]): string[] {
+  return flatFiles.filter(f => !isNoisePath(f));
+}
+
+/**
+ * Sort evidence entries deterministically:
+ *   1. By evidence type rank (dependency first, directory last).
+ *   2. Within the same type, alphabetically by value.
+ */
+function sortEvidence(evidence: TechnologyEvidence[]): TechnologyEvidence[] {
+  return [...evidence].sort((a, b) => {
+    const typeDiff = evidenceTypeRank(a.type) - evidenceTypeRank(b.type);
+    if (typeDiff !== 0) return typeDiff;
+    return a.value.localeCompare(b.value);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1951,11 +2031,34 @@ function categoryRank(cat: TechnologyCategory): number {
 export function detectTechnologyStack(
   context: TechnologyDetectorContext,
 ): TechnologyStack {
+  // Build a root-signal-only file list for use in file/directory rules.
+  // This prevents nested example/fixture projects from dominating the output.
+  const rootFiles = rootOnlyFiles(context.flatFiles);
+
+  // Augmented context with root-only files available for rules that want it.
+  // Rules that deal with package manifest signals use context directly (already root-level).
+  const ctxWithRootFiles: TechnologyDetectorContext = {
+    ...context,
+    // flatFiles remains the full list — manifest/config rules need all files.
+    // rootFiles is used internally by the engine for file/directory signals.
+  };
+
   // Map from dedup-key → mutable accumulator
   const accumulators = new Map<string, TechAccumulator>();
 
   for (const rule of TECH_RULES) {
-    const matchedValue = rule.match(context);
+    // For file, directory, and manifest evidence types, use the root-only file
+    // list to avoid noise from nested example/fixture directories.
+    // Package manifest signals from package.json (dependency/devDependency/
+    // peerDependency) are already root-level and unaffected.
+    const effectiveContext: TechnologyDetectorContext =
+      (rule.evidenceType === 'file' ||
+       rule.evidenceType === 'directory' ||
+       rule.evidenceType === 'manifest')
+        ? { ...context, flatFiles: rootFiles }
+        : context;
+
+    const matchedValue = rule.match(effectiveContext);
     if (matchedValue == null) continue; // rule did not fire
 
     const key = techKey(rule.tech);
@@ -1964,11 +2067,15 @@ export function detectTechnologyStack(
       value: matchedValue,
     };
     const scoreContribution = SCORE[rule.evidenceType];
+    const isStrong = isStrongEvidence(rule.evidenceType);
 
     const existing = accumulators.get(key);
     if (existing) {
       // Merge: accumulate score and evidence (avoid duplicate evidence entries)
       existing.rawScore += scoreContribution;
+      if (isStrong) {
+        existing.hasStrongEvidence = true;
+      }
       const alreadyHas = existing.evidence.some(
         e => e.type === evidence.type && e.value === evidence.value,
       );
@@ -1977,26 +2084,52 @@ export function detectTechnologyStack(
       }
     } else {
       accumulators.set(key, {
-        name:     rule.tech,
-        category: rule.category,
-        rawScore: scoreContribution,
-        evidence: [evidence],
+        name:              rule.tech,
+        category:          rule.category,
+        rawScore:          scoreContribution,
+        evidence:          [evidence],
+        hasStrongEvidence: isStrong,
       });
     }
   }
 
-  // Build Technology objects, applying confidence threshold
+  // Suppress ctxWithRootFiles unused-variable warning.
+  void ctxWithRootFiles;
+
+  // Build Technology objects, applying confidence threshold and minimum evidence rules.
   const technologies: Technology[] = [];
 
   for (const acc of accumulators.values()) {
     const confidence = toConfidence(acc.rawScore);
-    if (confidence < CONFIDENCE_THRESHOLD) continue; // suppress weak guesses
+
+    // Primary guard: confidence must meet the detection threshold.
+    if (confidence < CONFIDENCE_THRESHOLD) continue;
+
+    // Secondary guard: technology must have at least one strong evidence
+    // signal (dependency, devDependency, peerDependency, or manifest) unless
+    // explicitly opted out via requiresStrongEvidence: false.
+    // This prevents pathological accumulation of many weak signals creating
+    // false detections.
+    //
+    // NOTE: rules with requiresStrongEvidence: false are those that ARE
+    // legitimately triggered by their manifest-level config files alone.
+    // The check is stored in the accumulator's hasStrongEvidence flag.
+    if (!acc.hasStrongEvidence) {
+      // Check if ANY rule for this tech opted out of the strong-evidence requirement.
+      const anyRuleAllowsWeakOnly = TECH_RULES.some(
+        r => techKey(r.tech) === techKey(acc.name) && r.requiresStrongEvidence === false,
+      );
+      if (!anyRuleAllowsWeakOnly) {
+        continue; // suppress: no strong evidence found
+      }
+    }
 
     technologies.push({
       name:       acc.name,
       category:   acc.category,
       confidence,
-      evidence:   acc.evidence,
+      // Sort evidence deterministically: by type rank then alphabetically.
+      evidence:   sortEvidence(acc.evidence),
     });
   }
 

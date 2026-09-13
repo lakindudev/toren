@@ -1194,6 +1194,7 @@ export function render(result: ScanResult, options: { cwd?: string } = {}): void
       ${renderProjectInfo(projectInfo, packageManager)}
       ${renderProjectHealth(health)}
       ${renderImportantFiles(importantFiles)}
+      ${renderTechnologyStack(result.technologyStack)}
       ${renderFrameworks(projectType)}
       ${renderEntryPoints(entryPoints)}
       ${renderConfigurationFiles(configs)}
