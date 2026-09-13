@@ -2047,10 +2047,14 @@ export function detectTechnologyStack(
   const accumulators = new Map<string, TechAccumulator>();
 
   for (const rule of TECH_RULES) {
-    // For file and directory evidence types, use the root-only file list
-    // to avoid noise from nested example/fixture directories.
+    // For file, directory, and manifest evidence types, use the root-only file
+    // list to avoid noise from nested example/fixture directories.
+    // Package manifest signals from package.json (dependency/devDependency/
+    // peerDependency) are already root-level and unaffected.
     const effectiveContext: TechnologyDetectorContext =
-      (rule.evidenceType === 'file' || rule.evidenceType === 'directory')
+      (rule.evidenceType === 'file' ||
+       rule.evidenceType === 'directory' ||
+       rule.evidenceType === 'manifest')
         ? { ...context, flatFiles: rootFiles }
         : context;
 
