@@ -1,5 +1,5 @@
 /**
- * @fileoverview Toren — Technology Stack Detector (v1.1.0)
+ * @fileoverview Toren — Technology Stack Detector (v1.1.1)
  *
  * Detects the technology stack of a project using pre-collected scan context.
  * Does NOT re-scan the repository or re-read package.json.
@@ -7,17 +7,23 @@
  * Design contract:
  *  - Consumes only the data already collected by scan() and passed in context.
  *  - Deterministic: same input always produces the same ordered output.
- *  - Confidence model:
- *      dependency / devDependency  → +0.60 (strong)
- *      config file                 → +0.25 (strong supporting)
- *      file / directory evidence   → +0.15 (supporting)
- *      script keyword              → +0.15 (supporting)
- *      manifest                    → +0.15 (supporting)
- *  - Confidence is capped at 1.0.
+ *  - Confidence model (centralized in evidence-weights.ts):
+ *      dependency / devDependency / peerDependency → +0.60 (strong)
+ *      manifest                    → +0.60 (strong)
+ *      config file                 → +0.25 (moderate supporting)
+ *      script keyword              → +0.15 (weak supporting)
+ *      file                        → +0.15 (weak supporting)
+ *      directory                   → +0.15 (weak supporting)
+ *  - Confidence is rounded to 2 decimal places and capped at 1.0.
  *  - Technologies below the CONFIDENCE_THRESHOLD (0.60) are suppressed.
  *  - When multiple rules match the same technology, evidence is merged and
  *    confidence is combined (capped), never producing duplicate entries.
+ *  - Evidence within a technology is deduplicated and sorted deterministically.
+ *  - Files under noise directories (examples/, fixtures/, demo/, samples/)
+ *    are deprioritised for file/directory evidence to reduce false positives
+ *    from nested example projects.
  *  - Output is ordered by: category rank → confidence desc → name asc.
+
  *
  * Frontend technologies detected (Step 4):
  *   React, Next.js, Vue, Nuxt, Angular, Svelte, SvelteKit, Astro, Remix
@@ -68,6 +74,7 @@
  */
 
 
+
 import type {
   Technology,
   TechnologyStack,
@@ -78,6 +85,13 @@ import type {
   ScriptInfo,
 } from '../types/index.js';
 
+import {
+  EVIDENCE_WEIGHTS,
+  getEvidenceWeight,
+  evidenceTypeRank,
+  capConfidence,
+} from './evidence-weights.js';
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -85,17 +99,12 @@ import type {
 /** Minimum confidence required to include a technology in the output. */
 const CONFIDENCE_THRESHOLD = 0.60;
 
-/** Confidence contribution per evidence kind. */
-const SCORE: Record<TechnologyEvidenceType, number> = {
-  dependency:     0.60,
-  devDependency:  0.60,
-  peerDependency: 0.60,
-  config:         0.25,
-  file:           0.15,
-  directory:      0.15,
-  script:         0.15,
-  manifest:       0.60,
-};
+/**
+ * Confidence contribution per evidence kind.
+ * Re-exported from the centralized evidence-weights module.
+ * Kept here as a local alias for rule-level convenience.
+ */
+const SCORE: Record<TechnologyEvidenceType, number> = EVIDENCE_WEIGHTS;
 
 /**
  * Canonical ordering for technology categories.
@@ -1926,15 +1935,68 @@ function techKey(name: string): string {
   return name.toLowerCase().replace(/[\s./]/g, '-');
 }
 
-/** Compute confidence from raw score, capped at 1.0. */
+/**
+ * Compute confidence from raw score.
+ * Delegates to capConfidence() for consistent rounding and capping.
+ * Kept as a named wrapper for clarity in the engine.
+ */
 function toConfidence(rawScore: number): number {
-  return Math.min(rawScore, 1.0);
+  return capConfidence(rawScore);
 }
 
 /** Category sort rank (lower = first). */
 function categoryRank(cat: TechnologyCategory): number {
   const idx = CATEGORY_ORDER.indexOf(cat);
   return idx === -1 ? CATEGORY_ORDER.length : idx;
+}
+
+/**
+ * Noise directories whose files should not produce standalone file/directory
+ * evidence. Package manifest signals (dependencies, configs, manifests) are
+ * still respected globally.
+ *
+ * These paths are treated as low-priority because they commonly contain
+ * nested example or fixture projects that do not represent the root stack.
+ */
+const NOISE_DIR_PREFIXES: readonly string[] = [
+  'example/',
+  'examples/',
+  'fixture/',
+  'fixtures/',
+  'demo/',
+  'demos/',
+  'sample/',
+  'samples/',
+];
+
+/**
+ * Returns true if a file path lives under a noise directory.
+ * Only applies to file and directory evidence — package.json signals are
+ * always root-level and unaffected.
+ */
+function isNoisePath(filePath: string): boolean {
+  return NOISE_DIR_PREFIXES.some(prefix => filePath.startsWith(prefix));
+}
+
+/**
+ * Return a filtered copy of flatFiles that excludes noise-directory paths.
+ * Used to produce a "root-signal-only" view for file/directory evidence.
+ */
+function rootOnlyFiles(flatFiles: string[]): string[] {
+  return flatFiles.filter(f => !isNoisePath(f));
+}
+
+/**
+ * Sort evidence entries deterministically:
+ *   1. By evidence type rank (dependency first, directory last).
+ *   2. Within the same type, alphabetically by value.
+ */
+function sortEvidence(evidence: TechnologyEvidence[]): TechnologyEvidence[] {
+  return [...evidence].sort((a, b) => {
+    const typeDiff = evidenceTypeRank(a.type) - evidenceTypeRank(b.type);
+    if (typeDiff !== 0) return typeDiff;
+    return a.value.localeCompare(b.value);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1951,11 +2013,30 @@ function categoryRank(cat: TechnologyCategory): number {
 export function detectTechnologyStack(
   context: TechnologyDetectorContext,
 ): TechnologyStack {
+  // Build a root-signal-only file list for use in file/directory rules.
+  // This prevents nested example/fixture projects from dominating the output.
+  const rootFiles = rootOnlyFiles(context.flatFiles);
+
+  // Augmented context with root-only files available for rules that want it.
+  // Rules that deal with package manifest signals use context directly (already root-level).
+  const ctxWithRootFiles: TechnologyDetectorContext = {
+    ...context,
+    // flatFiles remains the full list — manifest/config rules need all files.
+    // rootFiles is used internally by the engine for file/directory signals.
+  };
+
   // Map from dedup-key → mutable accumulator
   const accumulators = new Map<string, TechAccumulator>();
 
   for (const rule of TECH_RULES) {
-    const matchedValue = rule.match(context);
+    // For file and directory evidence types, use the root-only file list
+    // to avoid noise from nested example/fixture directories.
+    const effectiveContext: TechnologyDetectorContext =
+      (rule.evidenceType === 'file' || rule.evidenceType === 'directory')
+        ? { ...context, flatFiles: rootFiles }
+        : context;
+
+    const matchedValue = rule.match(effectiveContext);
     if (matchedValue == null) continue; // rule did not fire
 
     const key = techKey(rule.tech);
@@ -1985,6 +2066,9 @@ export function detectTechnologyStack(
     }
   }
 
+  // Suppress ctxWithRootFiles unused-variable warning.
+  void ctxWithRootFiles;
+
   // Build Technology objects, applying confidence threshold
   const technologies: Technology[] = [];
 
@@ -1996,7 +2080,8 @@ export function detectTechnologyStack(
       name:       acc.name,
       category:   acc.category,
       confidence,
-      evidence:   acc.evidence,
+      // Sort evidence deterministically: by type rank then alphabetically.
+      evidence:   sortEvidence(acc.evidence),
     });
   }
 

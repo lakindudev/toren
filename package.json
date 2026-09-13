@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "test": "node --test",
-    "lint": "node --check dist/cli/toren.js dist/scanner/scan.js dist/lifecycle.js dist/renderers/index.js dist/renderers/console-renderer.js dist/renderers/json-renderer.js dist/renderers/markdown-renderer.js dist/renderers/html-renderer.js dist/detectors/config-detector.js dist/detectors/script-detector.js dist/detectors/package-manager-detector.js"
+    "lint": "node --check dist/cli/toren.js dist/scanner/scan.js dist/lifecycle.js dist/renderers/index.js dist/renderers/console-renderer.js dist/renderers/json-renderer.js dist/renderers/markdown-renderer.js dist/renderers/html-renderer.js dist/detectors/config-detector.js dist/detectors/script-detector.js dist/detectors/package-manager-detector.js dist/detectors/evidence-weights.js dist/detectors/technology-stack-detector.js"
   },
   "keywords": [
     "cli tool",
