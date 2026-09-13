@@ -90,6 +90,7 @@ import {
   getEvidenceWeight,
   evidenceTypeRank,
   capConfidence,
+  isStrongEvidence,
 } from './evidence-weights.js';
 
 // ---------------------------------------------------------------------------
@@ -173,6 +174,8 @@ interface TechAccumulator {
   category: TechnologyCategory;
   rawScore: number;
   evidence: TechnologyEvidence[];
+  /** True if at least one strong evidence (dep/devDep/peerDep/manifest) was found. */
+  hasStrongEvidence: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -189,6 +192,16 @@ interface TechRule {
   tech: string;
   category: TechnologyCategory;
   evidenceType: TechnologyEvidenceType;
+  /**
+   * When true (default), this technology will be suppressed unless at least
+   * one strong evidence piece (dependency, devDependency, peerDependency, or
+   * manifest) is present. Set to false only for technologies that are
+   * legitimately identified by structural config files alone (e.g. Docker,
+   * Spring Boot, Django, Rails).
+   *
+   * Default: true (most technologies require strong evidence).
+   */
+  requiresStrongEvidence?: boolean;
   /**
    * Test function: receives the context and returns the matching value
    * (package name, filename, etc.) if the rule fires, or null/undefined
@@ -874,13 +887,16 @@ const TECH_RULES: TechRule[] = [
   },
 
   // ── Spring Boot ───────────────────────────────────────────────────────────
-  // pom.xml and build.gradle are recognised by detectConfigs (root-level only).
+  // pom.xml and build.gradle are root-level Java build files — structural signals.
   // *Application.java is the canonical Spring Boot entry-point convention.
+  // requiresStrongEvidence: false — Spring Boot is legitimately identified by
+  // build files alone (Java projects have no package.json equivalent).
 
   {
     tech: 'Spring Boot',
     category: 'backend',
     evidenceType: 'config',
+    requiresStrongEvidence: false,
     match: ({ configs }) =>
       configs.includes('pom.xml') ? 'pom.xml' : null,
   },
@@ -888,6 +904,7 @@ const TECH_RULES: TechRule[] = [
     tech: 'Spring Boot',
     category: 'backend',
     evidenceType: 'config',
+    requiresStrongEvidence: false,
     match: ({ configs }) =>
       configs.includes('build.gradle') || configs.includes('build.gradle.kts')
         ? (configs.includes('build.gradle') ? 'build.gradle' : 'build.gradle.kts')
@@ -897,6 +914,7 @@ const TECH_RULES: TechRule[] = [
     tech: 'Spring Boot',
     category: 'backend',
     evidenceType: 'file',
+    requiresStrongEvidence: false,
     match: ({ flatFiles }) =>
       flatFiles.some(f => f.endsWith('Application.java'))
         ? 'Application.java'
@@ -2045,11 +2063,15 @@ export function detectTechnologyStack(
       value: matchedValue,
     };
     const scoreContribution = SCORE[rule.evidenceType];
+    const isStrong = isStrongEvidence(rule.evidenceType);
 
     const existing = accumulators.get(key);
     if (existing) {
       // Merge: accumulate score and evidence (avoid duplicate evidence entries)
       existing.rawScore += scoreContribution;
+      if (isStrong) {
+        existing.hasStrongEvidence = true;
+      }
       const alreadyHas = existing.evidence.some(
         e => e.type === evidence.type && e.value === evidence.value,
       );
@@ -2058,10 +2080,11 @@ export function detectTechnologyStack(
       }
     } else {
       accumulators.set(key, {
-        name:     rule.tech,
-        category: rule.category,
-        rawScore: scoreContribution,
-        evidence: [evidence],
+        name:              rule.tech,
+        category:          rule.category,
+        rawScore:          scoreContribution,
+        evidence:          [evidence],
+        hasStrongEvidence: isStrong,
       });
     }
   }
@@ -2069,12 +2092,33 @@ export function detectTechnologyStack(
   // Suppress ctxWithRootFiles unused-variable warning.
   void ctxWithRootFiles;
 
-  // Build Technology objects, applying confidence threshold
+  // Build Technology objects, applying confidence threshold and minimum evidence rules.
   const technologies: Technology[] = [];
 
   for (const acc of accumulators.values()) {
     const confidence = toConfidence(acc.rawScore);
-    if (confidence < CONFIDENCE_THRESHOLD) continue; // suppress weak guesses
+
+    // Primary guard: confidence must meet the detection threshold.
+    if (confidence < CONFIDENCE_THRESHOLD) continue;
+
+    // Secondary guard: technology must have at least one strong evidence
+    // signal (dependency, devDependency, peerDependency, or manifest) unless
+    // explicitly opted out via requiresStrongEvidence: false.
+    // This prevents pathological accumulation of many weak signals creating
+    // false detections.
+    //
+    // NOTE: rules with requiresStrongEvidence: false are those that ARE
+    // legitimately triggered by their manifest-level config files alone.
+    // The check is stored in the accumulator's hasStrongEvidence flag.
+    if (!acc.hasStrongEvidence) {
+      // Check if ANY rule for this tech opted out of the strong-evidence requirement.
+      const anyRuleAllowsWeakOnly = TECH_RULES.some(
+        r => techKey(r.tech) === techKey(acc.name) && r.requiresStrongEvidence === false,
+      );
+      if (!anyRuleAllowsWeakOnly) {
+        continue; // suppress: no strong evidence found
+      }
+    }
 
     technologies.push({
       name:       acc.name,
