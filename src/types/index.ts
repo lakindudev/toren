@@ -151,12 +151,70 @@ export interface Technology {
   evidence: TechnologyEvidence[];
 }
 
+// ---------------------------------------------------------------------------
+// Technology Stack Intelligence — v1.1.2: Relationships
+// ---------------------------------------------------------------------------
+
+/**
+ * The kind of relationship between two detected technologies.
+ *
+ * - "built-with"    — technology A is a meta-framework/layer built on top of B
+ *                     (e.g. Next.js built-with React, SvelteKit built-with Svelte)
+ * - "runs-on"       — technology A requires runtime B to operate
+ *                     (e.g. Express runs-on Node.js)
+ * - "uses"          — technology A has a direct conceptual dependency on B
+ *                     (e.g. Mongoose uses MongoDB, Docker Compose uses Docker)
+ * - "styled-with"   — A UI framework or app uses B for styling
+ *                     (e.g. Next.js styled-with Tailwind CSS)
+ * - "stores-data-in"— an ORM or data layer targets B as its database
+ *                     (e.g. Prisma stores-data-in PostgreSQL)
+ * - "tested-with"   — A is commonly combined with testing utility B
+ *                     (e.g. Jest tested-with Testing Library)
+ * - "deployed-with" — the project is configured to deploy using platform B
+ *                     (e.g. Next.js deployed-with Vercel)
+ */
+export type TechnologyRelationshipKind =
+  | "built-with"
+  | "runs-on"
+  | "uses"
+  | "styled-with"
+  | "stores-data-in"
+  | "tested-with"
+  | "deployed-with";
+
+/**
+ * A directed association between two technologies that were both detected
+ * in the same project.
+ *
+ * Relationships are NEVER inferred — both `from` and `to` must appear in
+ * the `TechnologyStack.technologies` array for a relationship to be emitted.
+ *
+ * @example
+ * { from: "Next.js",  to: "React",           relationship: "built-with"     }
+ * { from: "Prisma",   to: "PostgreSQL",       relationship: "stores-data-in" }
+ * { from: "Jest",     to: "Testing Library",  relationship: "tested-with"    }
+ */
+export interface TechnologyRelationship {
+  /** The source technology name — must match a Technology.name in the stack. */
+  from: string;
+  /** The target technology name — must match a Technology.name in the stack. */
+  to: string;
+  /** The nature of the association between from and to. */
+  relationship: TechnologyRelationshipKind;
+}
+
 /**
  * The complete technology stack detected for a project.
- * Always present on ScanResult; defaults to `{ technologies: [] }`.
+ * Always present on ScanResult; defaults to `{ technologies: [], relationships: [] }`.
  */
 export interface TechnologyStack {
   technologies: Technology[];
+  /**
+   * Directed relationships between co-detected technologies.
+   * Only populated when both the `from` and `to` technologies are present
+   * in `technologies`. Empty array when no known relationships apply.
+   */
+  relationships: TechnologyRelationship[];
 }
 
 export interface ScanResult {
