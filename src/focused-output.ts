@@ -35,6 +35,7 @@ const EMPTY = {
 export const FOCUSED_FLAGS = [
   '--stack',
   '--tech-stack',
+  '--stack-summary',
   '--project-type',
   '--frameworks',
   '--entry-points',
@@ -190,6 +191,80 @@ export function renderFocusedMode(mode: string, result: ScanResult): void {
       console.log(`\x1b[1m${label}\x1b[0m`);
       for (const name of names) {
         console.log(`  ${name}`);
+      }
+      console.log('');
+    }
+
+    if (result.technologyRelationships && result.technologyRelationships.length > 0) {
+      console.log('\x1b[1mRelationships\x1b[0m');
+      for (const rel of result.technologyRelationships) {
+        console.log(`  ${rel.from} → ${rel.to}`);
+      }
+      console.log('');
+    }
+    break;
+  }
+
+  case '--stack-summary': {
+    const summary = result.stackSummary;
+    const stack   = result.technologyStack;
+
+    printSectionHeader('Stack Summary');
+
+    if (!summary || (
+      !summary.headline &&
+      summary.frameworks.length === 0 &&
+      summary.styling.length === 0 &&
+      summary.data.length === 0 &&
+      summary.testing.length === 0
+    )) {
+      console.log('\x1b[2mNo stack summary available.\x1b[0m');
+      break;
+    }
+
+    if (summary.headline) {
+      console.log(`\x1b[97m${summary.headline}\x1b[0m`);
+      console.log('');
+    }
+
+    if (summary.frameworks.length > 0) {
+      console.log('\x1b[1mFrameworks\x1b[0m');
+      for (const fw of summary.frameworks) {
+        console.log(`  ${fw}`);
+      }
+      console.log('');
+    }
+
+    if (summary.styling.length > 0) {
+      console.log('\x1b[1mStyling\x1b[0m');
+      for (const s of summary.styling) {
+        console.log(`  ${s}`);
+      }
+      console.log('');
+    }
+
+    if (summary.data.length > 0) {
+      console.log('\x1b[1mData\x1b[0m');
+      for (const d of summary.data) {
+        console.log(`  ${d}`);
+      }
+      console.log('');
+    }
+
+    if (summary.testing.length > 0) {
+      console.log('\x1b[1mTesting\x1b[0m');
+      for (const t of summary.testing) {
+        console.log(`  ${t}`);
+      }
+      console.log('');
+    }
+
+    // Relationships — shown when any exist
+    const rels = (stack?.relationships ?? []);
+    if (rels.length > 0) {
+      console.log('\x1b[1mRelationships\x1b[0m');
+      for (const rel of rels) {
+        console.log(`  ${rel.from} \x1b[2m→\x1b[0m ${rel.to}`);
       }
       console.log('');
     }

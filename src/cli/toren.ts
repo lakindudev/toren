@@ -75,6 +75,7 @@ Fast Repository Discovery CLI
   --important-files   Show important files only
   --health            Show project health observations
   --stack, --tech-stack Show detected technology stack only
+  --stack-summary     Show concise stack summary with relationships
   --include-hidden    Include hidden files and folders
   --all, -a           Show complete directory tree without limits
   --max-files <n>     Set scan file limit
@@ -94,6 +95,8 @@ ${formatList}
   toren --format html . > out.html     Save an HTML report to a file
   toren . --configs                    Show project configuration files
   toren . --frameworks                 Show detected frameworks
+  toren . --stack                      Show detected technology stack
+  toren . --stack-summary              Show concise stack interpretation
 `);
 }
 

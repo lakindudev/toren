@@ -25,6 +25,8 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { detectTechnologyStack } from '../dist/detectors/technology-stack-detector.js';
+import { detectRelationships } from '../dist/detectors/stack-relationships.js';
+
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -580,3 +582,82 @@ describe('Determinism: confidence precision', () => {
   });
 
 });
+
+// ---------------------------------------------------------------------------
+// 9. Determinism: technology relationships
+// ---------------------------------------------------------------------------
+
+describe('Determinism: technology relationships', () => {
+
+  test('shuffled technologies produce identical relationships array', () => {
+    const baseTechs = [
+      { name: 'Next.js', category: 'frontend', confidence: 1.0, evidence: [] },
+      { name: 'React', category: 'frontend', confidence: 1.0, evidence: [] },
+      { name: 'TypeScript', category: 'language', confidence: 1.0, evidence: [] },
+      { name: 'Tailwind CSS', category: 'styling', confidence: 1.0, evidence: [] },
+      { name: 'Prisma', category: 'orm', confidence: 1.0, evidence: [] },
+      { name: 'PostgreSQL', category: 'database', confidence: 1.0, evidence: [] },
+      { name: 'Vitest', category: 'testing', confidence: 1.0, evidence: [] },
+      { name: 'Testing Library', category: 'testing', confidence: 1.0, evidence: [] },
+      { name: 'Docker Compose', category: 'container', confidence: 1.0, evidence: [] },
+      { name: 'Docker', category: 'container', confidence: 1.0, evidence: [] },
+    ];
+
+    const reference = detectRelationships(baseTechs);
+
+    for (let i = 0; i < 20; i++) {
+      const shuffled = shuffle(baseTechs);
+      const output = detectRelationships(shuffled);
+      assert.deepEqual(output, reference,
+        `Iteration ${i}: shuffled technologies must yield identical relationships`);
+    }
+  });
+
+  test('duplicate technologies in input do not produce duplicate relationships', () => {
+    const techsWithDuplicates = [
+      { name: 'Next.js', category: 'frontend', confidence: 1.0, evidence: [] },
+      { name: 'Next.js', category: 'frontend', confidence: 1.0, evidence: [] },
+      { name: 'React', category: 'frontend', confidence: 1.0, evidence: [] },
+      { name: 'React', category: 'frontend', confidence: 1.0, evidence: [] },
+      { name: 'TypeScript', category: 'language', confidence: 1.0, evidence: [] },
+    ];
+
+    const output = detectRelationships(techsWithDuplicates);
+    const seen = new Set();
+    for (const rel of output) {
+      const key = `${rel.from}|${rel.relationship}|${rel.to}`;
+      assert.ok(!seen.has(key), `Duplicate relationship found: ${key}`);
+      seen.add(key);
+    }
+  });
+
+  test('relationships array is strictly ordered by from, relationship, to', () => {
+    const techs = [
+      { name: 'Next.js', category: 'frontend', confidence: 1.0, evidence: [] },
+      { name: 'React', category: 'frontend', confidence: 1.0, evidence: [] },
+      { name: 'Tailwind CSS', category: 'styling', confidence: 1.0, evidence: [] },
+      { name: 'Prisma', category: 'orm', confidence: 1.0, evidence: [] },
+      { name: 'PostgreSQL', category: 'database', confidence: 1.0, evidence: [] },
+      { name: 'MySQL', category: 'database', confidence: 1.0, evidence: [] },
+    ];
+
+    const output = detectRelationships(techs);
+    for (let i = 0; i < output.length - 1; i++) {
+      const a = output[i];
+      const b = output[i + 1];
+      const fromCmp = a.from.localeCompare(b.from);
+      if (fromCmp !== 0) {
+        assert.ok(fromCmp < 0, `Ordering violation on from: "${a.from}" should precede "${b.from}"`);
+      } else {
+        const relCmp = a.relationship.localeCompare(b.relationship);
+        if (relCmp !== 0) {
+          assert.ok(relCmp < 0, `Ordering violation on relationship: "${a.relationship}" should precede "${b.relationship}"`);
+        } else {
+          assert.ok(a.to.localeCompare(b.to) <= 0, `Ordering violation on to: "${a.to}" should precede "${b.to}"`);
+        }
+      }
+    }
+  });
+
+});
+

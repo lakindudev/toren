@@ -151,12 +151,98 @@ export interface Technology {
   evidence: TechnologyEvidence[];
 }
 
+// ---------------------------------------------------------------------------
+// Technology Stack Intelligence — v1.1.2: Relationships
+// ---------------------------------------------------------------------------
+
+/**
+ * The kind of relationship between two detected technologies.
+ *
+ * - "built-with"    — technology A is a meta-framework/layer built on top of B
+ *                     (e.g. Next.js built-with React, SvelteKit built-with Svelte)
+ * - "runs-on"       — technology A requires runtime B to operate
+ *                     (e.g. Express runs-on Node.js)
+ * - "uses"          — technology A has a direct conceptual dependency on B
+ *                     (e.g. Mongoose uses MongoDB, Docker Compose uses Docker)
+ * - "styled-with"   — A UI framework or app uses B for styling
+ *                     (e.g. Next.js styled-with Tailwind CSS)
+ * - "stores-data-in"— an ORM or data layer targets B as its database
+ *                     (e.g. Prisma stores-data-in PostgreSQL)
+ * - "tested-with"   — A is commonly combined with testing utility B
+ *                     (e.g. Jest tested-with Testing Library)
+ * - "deployed-with" — the project is configured to deploy using platform B
+ *                     (e.g. Next.js deployed-with Vercel)
+ */
+export type TechnologyRelationshipKind =
+  | "built-with"
+  | "runs-on"
+  | "uses"
+  | "styled-with"
+  | "stores-data-in"
+  | "tested-with"
+  | "deployed-with";
+
+/**
+ * A directed association between two technologies that were both detected
+ * in the same project.
+ *
+ * Relationships are NEVER inferred — both `from` and `to` must appear in
+ * the `TechnologyStack.technologies` array for a relationship to be emitted.
+ *
+ * @example
+ * { from: "Next.js",  to: "React",           relationship: "built-with"     }
+ * { from: "Prisma",   to: "PostgreSQL",       relationship: "stores-data-in" }
+ * { from: "Jest",     to: "Testing Library",  relationship: "tested-with"    }
+ */
+export interface TechnologyRelationship {
+  /** The source technology name — must match a Technology.name in the stack. */
+  from: string;
+  /** The target technology name — must match a Technology.name in the stack. */
+  to: string;
+  /** The nature of the association between from and to. */
+  relationship: TechnologyRelationshipKind;
+}
+
 /**
  * The complete technology stack detected for a project.
- * Always present on ScanResult; defaults to `{ technologies: [] }`.
+ * Always present on ScanResult; defaults to `{ technologies: [], relationships: [] }`.
  */
 export interface TechnologyStack {
   technologies: Technology[];
+  /**
+   * Directed relationships between co-detected technologies.
+   * Only populated when both the `from` and `to` technologies are present
+   * in `technologies`. Empty array when no known relationships apply.
+   */
+  relationships: TechnologyRelationship[];
+}
+
+// ---------------------------------------------------------------------------
+// Technology Stack Intelligence — v1.1.2: Stack Summary
+// ---------------------------------------------------------------------------
+
+/**
+ * A deterministic, template-based summary of the detected project stack.
+ *
+ * All fields are optional — the summary gracefully degrades when information
+ * is unavailable. No fields are ever null; missing categories produce empty
+ * arrays and undefined string fields are simply omitted.
+ */
+export interface StackSummary {
+  /**
+   * A short, human-readable description of the project type.
+   * Generated from detected language + stack shape.
+   * Undefined when the stack is empty or too ambiguous to summarise.
+   */
+  headline?: string;
+  /** Detected frontend / backend frameworks (sorted by category rank, then name). */
+  frameworks: string[];
+  /** Detected styling technologies. */
+  styling: string[];
+  /** Detected databases and ORM / data-access tools. */
+  data: string[];
+  /** Detected testing frameworks and utilities. */
+  testing: string[];
 }
 
 export interface ScanResult {
@@ -175,6 +261,8 @@ export interface ScanResult {
   projectInfo: ProjectInfo;
   health: HealthObservation[];
   technologyStack: TechnologyStack;
+  technologyRelationships: TechnologyRelationship[];
+  stackSummary: StackSummary;
 }
 
 export type OutputFormat = "console" | "json" | "markdown" | "html";
@@ -194,6 +282,8 @@ export interface CliOptions {
   importantFilesOnly?: boolean;
   healthOnly?: boolean;
   scriptsOnly?: boolean;
+  stackOnly?: boolean;
+  stackSummaryOnly?: boolean;
 }
 
 declare global {

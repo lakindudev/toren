@@ -75,6 +75,7 @@ toren --summary
 toren --important-files
 toren --health
 toren --stack
+toren --stack-summary
 
 # Lifecycle & Help Commands
 toren --help
@@ -98,6 +99,7 @@ toren --uninstall
 | `--important-files` | Show important files only. |
 | `--health` | Show project health observations only. |
 | `--stack`, `--tech-stack` | Show detected technology stack only. |
+| `--stack-summary` | Show deterministic project stack summary only. |
 | `--format <type>` | Output format: `console` (default), `json`, `markdown`, `html`. |
 | `--include-hidden` | Include hidden files and dot-directories in the scan. |
 | `--max-files <n>` | Override the default 50,000-file scan limit. |
@@ -235,6 +237,24 @@ Generate machine-readable output for scripts, toolchains, or AI context windows 
     },
     { "type": "file", "name": "package.json" }
   ],
+  "technologyStack": {
+    "technologies": [
+      { "name": "TypeScript", "category": "language", "confidence": 0.85, "evidence": [...] },
+      { "name": "Next.js", "category": "frontend", "confidence": 0.9, "evidence": [...] },
+      { "name": "React", "category": "frontend", "confidence": 0.85, "evidence": [...] }
+    ]
+  },
+  "technologyRelationships": [
+    { "from": "Next.js", "to": "React", "relationship": "built-with" },
+    { "from": "Next.js", "to": "TypeScript", "relationship": "uses" }
+  ],
+  "stackSummary": {
+    "headline": "TypeScript full-stack web application",
+    "frameworks": ["Next.js", "React"],
+    "styling": [],
+    "data": [],
+    "testing": []
+  },
   "summary": {
     "totalFiles": 32,
     "totalFolders": 6,
@@ -247,9 +267,47 @@ Generate machine-readable output for scripts, toolchains, or AI context windows 
 
 ---
 
+## Technology Intelligence & Stack Relationships
+
+Torén v1.1.2 introduces deterministic technology relationships and project stack interpretation:
+
+- **Stack Relationships**: Understands how detected technologies work together (e.g. `Next.js → React`, `NestJS → Node.js`, `Prisma → PostgreSQL`).
+- **No False Inferences**: Relationships describe associations between **already detected** technologies. Torén never infers or fabricates an absent technology simply because another technology works with it.
+- **Deterministic Ordering**: Relationships are strictly sorted (`from` technology, then `relationship` type, then `to` technology) and deduplicated.
+- **Project Stack Summary (`--stack-summary`)**: Provides a template-based, zero-AI interpretation of the detected stack, generating a clean headline and category groupings (Frameworks, Styling, Data, Testing).
+
+```bash
+toren . --stack-summary
+```
+
+Example output:
+```text
+Stack Summary
+────────────────────────
+
+TypeScript full-stack web application
+
+Frameworks
+  Next.js
+  React
+
+Styling
+  Tailwind CSS
+
+Data
+  Prisma
+  PostgreSQL
+```
+
+---
+
 ## Release Notes
 
-### v1.0.7 - Intelligence Upgrade
+### v1.1.2 - Project Intelligence & Stack Relationships
+- **Technology Stack Relationships**: High-confidence, directional relationship detection (`runs-on`, `built-with`, `uses`, `stores-data-in`) between detected technologies.
+- **Deterministic Guarantee**: Canonical ordering and deduplication across all relationship detections.
+- **Stack Summary Command**: New `--stack-summary` focused CLI command and `stackSummary` field in JSON/Markdown/HTML.
+- **Zero-Dependency Commitment**: Fast, deterministic, and 100% zero external runtime dependencies.
 - **Project Intelligence Upgrade**: Added Package Manager detection, project metadata extraction (name, language, runtime, architecture), and important file detection.
 - **Project Health Checks**: New `--health` flag to evaluate repository health (checking for README, License, linting, tests, docker files).
 - **Richer Output Formats**: Expanded HTML and Markdown renderers to include the newly extracted project details, ensuring a highly readable and comprehensive project overview.

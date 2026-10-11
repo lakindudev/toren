@@ -93,6 +93,8 @@ import {
   isStrongEvidence,
 } from './evidence-weights.js';
 
+import { detectRelationships } from './stack-relationships.js';
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -2147,5 +2149,8 @@ export function detectTechnologyStack(
     return a.name.localeCompare(b.name);
   });
 
-  return { technologies };
+  return {
+    technologies,
+    relationships: detectRelationships(technologies),
+  };
 }

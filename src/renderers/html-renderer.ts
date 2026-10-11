@@ -1,4 +1,4 @@
-import type { ScanResult, DirNode, TreeNode, FileNode, ScriptInfo, ImportantFile, HealthObservation, ProjectInfo, PackageManager } from "../types/index.js";
+import type { ScanResult, DirNode, TreeNode, FileNode, ScriptInfo, ImportantFile, HealthObservation, ProjectInfo, PackageManager, TechnologyRelationship, StackSummary } from "../types/index.js";
 /**
  * @fileoverview Toren — HTML Renderer
  *
@@ -845,6 +845,70 @@ function renderProjectInfo(projectInfo: ProjectInfo | null, packageManager: Pack
 }
 
 /**
+ * Render the stack summary section.
+ *
+ * @param {StackSummary | undefined} summary
+ * @returns {string}
+ */
+function renderStackSummary(summary?: StackSummary): string {
+  const hasCategories = summary && (
+    (summary.frameworks && summary.frameworks.length > 0) ||
+    (summary.styling && summary.styling.length > 0) ||
+    (summary.data && summary.data.length > 0) ||
+    (summary.testing && summary.testing.length > 0)
+  );
+
+  if (!summary || (!summary.headline && !hasCategories)) {
+    return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.info()}</div>
+      <h2 class="section-title">Stack Summary</h2>
+    </div>
+    <div class="section-body">
+      <p class="empty-msg" style="padding: 1.5rem">No stack summary available.</p>
+    </div>
+  </section>`;
+  }
+
+  let categoriesHtml = '';
+  const rows: Array<{ label: string; items: string[] }> = [
+    { label: 'Frameworks', items: summary.frameworks || [] },
+    { label: 'Styling',    items: summary.styling || [] },
+    { label: 'Data',       items: summary.data || [] },
+    { label: 'Testing',    items: summary.testing || [] },
+  ];
+
+  for (const row of rows) {
+    if (row.items.length > 0) {
+      categoriesHtml += `
+      <div style="margin-top: 1rem;">
+        <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem;">${esc(row.label)}</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+          ${row.items.map(name => `<span style="background: var(--bg); border: 1px solid var(--border); padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.85rem;">${esc(name)}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+  }
+
+  const headlineHtml = summary.headline
+    ? `<div style="font-weight: 600; font-size: 1.05rem; margin-bottom: 0.5rem;">${esc(summary.headline)}</div>`
+    : '';
+
+  return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.info()}</div>
+      <h2 class="section-title">Stack Summary</h2>
+    </div>
+    <div class="section-body">
+      ${headlineHtml}
+      ${categoriesHtml}
+    </div>
+  </section>`;
+}
+
+/**
  * Render the technology stack section.
  *
  * @param {import('../types/index.js').TechnologyStack} stack
@@ -921,6 +985,52 @@ function renderTechnologyStack(stack: import('../types/index.js').TechnologyStac
     </div>
     <div class="section-body">
       ${body}
+    </div>
+  </section>`;
+}
+
+/**
+ * Render the technology relationships section.
+ *
+ * @param {TechnologyRelationship[] | undefined} relationships
+ * @returns {string}
+ */
+function renderTechnologyRelationships(relationships?: TechnologyRelationship[]): string {
+  const rels = relationships || [];
+  const count = rels.length;
+
+  if (count === 0) {
+    return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.code()}</div>
+      <h2 class="section-title">Technology Relationships</h2>
+    </div>
+    <div class="section-body">
+      <p class="empty-msg" style="padding: 1.5rem">No technology relationships detected.</p>
+    </div>
+  </section>`;
+  }
+
+  const items = rels.map(rel => `
+    <li class="entry-item">
+      <span><strong>${esc(rel.from)}</strong></span>
+      <span style="color: var(--muted); margin: 0 0.5rem;">→</span>
+      <span>${esc(rel.to)}</span>
+      <span style="margin-left: auto; color: var(--muted); font-size: 0.8rem;">${esc(rel.relationship)}</span>
+    </li>`).join('');
+
+  return `
+  <section class="section">
+    <div class="section-header">
+      <div class="section-icon">${icon.code()}</div>
+      <h2 class="section-title">Technology Relationships</h2>
+      <span class="section-count">${count} relationships</span>
+    </div>
+    <div class="section-body">
+      <ul class="entry-list">
+        ${items}
+      </ul>
     </div>
   </section>`;
 }
@@ -1194,7 +1304,9 @@ export function render(result: ScanResult, options: { cwd?: string } = {}): void
       ${renderProjectInfo(projectInfo, packageManager)}
       ${renderProjectHealth(health)}
       ${renderImportantFiles(importantFiles)}
+      ${renderStackSummary(result.stackSummary)}
       ${renderTechnologyStack(result.technologyStack)}
+      ${renderTechnologyRelationships(result.technologyRelationships)}
       ${renderFrameworks(projectType)}
       ${renderEntryPoints(entryPoints)}
       ${renderConfigurationFiles(configs)}

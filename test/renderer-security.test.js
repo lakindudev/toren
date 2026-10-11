@@ -231,6 +231,60 @@ describe('HTML renderer: XSS protection', () => {
       'Raw <script> injection in projectInfo.name must be escaped in HTML');
   });
 
+  test('HTML renderer: technology name with <script> tag is escaped', () => {
+    const result = makeResult({
+      technologyStack: {
+        technologies: [
+          { name: '<script>alert("tech")</script>', category: 'frontend', confidence: 0.9, evidence: [] }
+        ]
+      }
+    });
+    const output = captureStdout(() => renderHtml(result));
+    assert.doesNotMatch(output, /<script>alert\("tech"\)<\/script>/);
+    assert.match(output, /&lt;script&gt;alert\(&quot;tech&quot;\)&lt;\/script&gt;/);
+  });
+
+  test('HTML renderer: relationship target with <script> tag is escaped', () => {
+    const result = makeResult({
+      technologyRelationships: [
+        { from: 'Next.js', to: '<script>alert("target")</script>', relationship: 'uses' }
+      ]
+    });
+    const output = captureStdout(() => renderHtml(result));
+    assert.doesNotMatch(output, /<script>alert\("target"\)<\/script>/);
+    assert.match(output, /&lt;script&gt;alert\(&quot;target&quot;\)&lt;\/script&gt;/);
+  });
+
+  test('HTML renderer: relationship type with <script> tag is escaped', () => {
+    const result = makeResult({
+      technologyRelationships: [
+        { from: 'Next.js', to: 'React', relationship: '<script>alert("rel")</script>' }
+      ]
+    });
+    const output = captureStdout(() => renderHtml(result));
+    assert.doesNotMatch(output, /<script>alert\("rel"\)<\/script>/);
+    assert.match(output, /&lt;script&gt;alert\(&quot;rel&quot;\)&lt;\/script&gt;/);
+  });
+
+  test('HTML renderer: stack summary headline and category data are escaped', () => {
+    const result = makeResult({
+      stackSummary: {
+        headline: '<script>alert("headline")</script>',
+        frameworks: ['<script>alert("fw")</script>'],
+        styling: ['<script>alert("style")</script>'],
+        data: ['<script>alert("data")</script>'],
+        testing: ['<script>alert("test")</script>'],
+      }
+    });
+    const output = captureStdout(() => renderHtml(result));
+    assert.doesNotMatch(output, /<script>alert/);
+    assert.match(output, /&lt;script&gt;alert\(&quot;headline&quot;\)&lt;\/script&gt;/);
+    assert.match(output, /&lt;script&gt;alert\(&quot;fw&quot;\)&lt;\/script&gt;/);
+    assert.match(output, /&lt;script&gt;alert\(&quot;style&quot;\)&lt;\/script&gt;/);
+    assert.match(output, /&lt;script&gt;alert\(&quot;data&quot;\)&lt;\/script&gt;/);
+    assert.match(output, /&lt;script&gt;alert\(&quot;test&quot;\)&lt;\/script&gt;/);
+  });
+
 });
 
 // ---------------------------------------------------------------------------
@@ -259,6 +313,40 @@ describe('Markdown renderer: technology stack content', () => {
     const result = makeResult({ technologyStack: { technologies: [] } });
     const output = captureStdout(() => renderMarkdown(result));
     assert.ok(output.length > 0, 'Markdown output must be non-empty even for empty stack');
+  });
+
+  test('Markdown output contains Technology Relationships section and items', () => {
+    const result = makeResult({
+      technologyRelationships: [
+        { from: 'Next.js', to: 'React', relationship: 'uses' },
+        { from: 'Next.js', to: 'TypeScript', relationship: 'uses' },
+        { from: 'Prisma', to: 'PostgreSQL', relationship: 'stores-data-in' },
+      ],
+    });
+    const output = captureStdout(() => renderMarkdown(result));
+    assert.match(output, /## Technology Relationships/);
+    assert.match(output, /- Next\.js → React/);
+    assert.match(output, /- Next\.js → TypeScript/);
+    assert.match(output, /- Prisma → PostgreSQL/);
+  });
+
+  test('Markdown output contains Stack Summary section and headline', () => {
+    const result = makeResult({
+      stackSummary: {
+        headline: 'TypeScript full-stack web application',
+        frameworks: ['Next.js', 'React'],
+        styling: ['Tailwind CSS'],
+        data: ['Prisma', 'PostgreSQL'],
+        testing: ['Vitest'],
+      },
+    });
+    const output = captureStdout(() => renderMarkdown(result));
+    assert.match(output, /## Stack Summary/);
+    assert.match(output, /TypeScript full-stack web application/);
+    assert.match(output, /- \*\*Frameworks:\*\* Next\.js, React/);
+    assert.match(output, /- \*\*Styling:\*\* Tailwind CSS/);
+    assert.match(output, /- \*\*Data:\*\* Prisma, PostgreSQL/);
+    assert.match(output, /- \*\*Testing:\*\* Vitest/);
   });
 
 });

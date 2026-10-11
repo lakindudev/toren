@@ -88,6 +88,26 @@ describe('--tech-stack CLI flag', () => {
     assert.match(res.output, /Vitest/);
   });
 
+  test('--stack on project with relationships shows Relationships section', () => {
+    const dir = makeDir({
+      'package.json': JSON.stringify({
+        name: 'next-app',
+        dependencies: { next: '^14.0.0', react: '^18.0.0' },
+        devDependencies: { typescript: '^5.0.0' },
+      }),
+      'next.config.js': 'module.exports = {};',
+      'tsconfig.json': '{}',
+    });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const res = runCLI(`${dir} --stack`);
+    assert.equal(res.status, 0);
+    assert.match(res.output, /Technology Stack/);
+    assert.match(res.output, /Relationships/);
+    assert.match(res.output, /Next\.js → React/);
+    assert.match(res.output, /Next\.js → TypeScript/);
+  });
+
   test('--tech-stack on empty project shows empty message', () => {
     const dir = makeDir({
       'README.md': '# Empty',
@@ -214,3 +234,88 @@ describe('--tech-stack unit: renderFocusedMode', () => {
       'Should have quality and testing categories');
   });
 });
+
+describe('--stack-summary CLI flag', () => {
+
+  test('--stack-summary appears in --help output', () => {
+    const res = runCLI('--help');
+    assert.equal(res.status, 0);
+    assert.match(res.output, /--stack-summary/);
+  });
+
+  test('--stack-summary on full project shows headline, frameworks, styling, data', () => {
+    const dir = makeDir({
+      'package.json': JSON.stringify({
+        name: 'full-app',
+        dependencies: {
+          next: '^14.0.0',
+          react: '^18.0.0',
+          tailwindcss: '^3.0.0',
+          '@prisma/client': '^5.0.0',
+          pg: '^8.0.0',
+        },
+        devDependencies: {
+          typescript: '^5.0.0',
+          prisma: '^5.0.0',
+          vitest: '^1.0.0',
+        },
+      }),
+      'tsconfig.json': '{}',
+      'tailwind.config.ts': 'export default {}',
+    });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const res = runCLI(`${dir} --stack-summary`);
+    assert.equal(res.status, 0);
+    assert.match(res.output, /Stack Summary/);
+    assert.match(res.output, /TypeScript web application/);
+    assert.match(res.output, /Frameworks/);
+    assert.match(res.output, /Next\.js/);
+    assert.match(res.output, /React/);
+    assert.match(res.output, /Styling/);
+    assert.match(res.output, /Tailwind CSS/);
+    assert.match(res.output, /Data/);
+    assert.match(res.output, /Prisma/);
+    assert.match(res.output, /Testing/);
+    assert.match(res.output, /Vitest/);
+    assert.match(res.output, /Relationships/);
+  });
+
+  test('--stack-summary on empty project shows empty message', () => {
+    const dir = makeDir({
+      'README.md': '# Empty',
+    });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const res = runCLI(`${dir} --stack-summary`);
+    assert.equal(res.status, 0);
+    assert.match(res.output, /Stack Summary/);
+    assert.match(res.output, /No stack summary available\./);
+  });
+
+  test('--stack-summary is mutually exclusive with --stack', () => {
+    const res = runCLI('. --stack --stack-summary');
+    assert.equal(res.status, 1);
+    assert.match(res.output, /mutually exclusive|Conflicting/);
+  });
+
+  test('--stack-summary is mutually exclusive with --health', () => {
+    const res = runCLI('. --stack-summary --health');
+    assert.equal(res.status, 1);
+    assert.match(res.output, /mutually exclusive|Conflicting/);
+  });
+
+  test('--stack-summary is mutually exclusive with --frameworks', () => {
+    const res = runCLI('. --stack-summary --frameworks');
+    assert.equal(res.status, 1);
+    assert.match(res.output, /mutually exclusive|Conflicting/);
+  });
+
+  test('--stack-summary is mutually exclusive with --project-type', () => {
+    const res = runCLI('. --stack-summary --project-type');
+    assert.equal(res.status, 1);
+    assert.match(res.output, /mutually exclusive|Conflicting/);
+  });
+
+});
+
