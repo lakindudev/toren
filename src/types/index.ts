@@ -233,6 +233,7 @@ export interface ScanResult {
   projectInfo: ProjectInfo;
   health: HealthObservation[];
   technologyStack: TechnologyStack;
+  technologyRelationships: TechnologyRelationship[];
 }
 
 export type OutputFormat = "console" | "json" | "markdown" | "html";

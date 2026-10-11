@@ -635,6 +635,9 @@ describe('detectRelationships — detectTechnologyStack() integration', () => {
     const result = await scan(dir);
     assert.ok('relationships' in result.technologyStack);
     assert.ok(Array.isArray(result.technologyStack.relationships));
+    assert.ok('technologyRelationships' in result, 'ScanResult must have technologyRelationships');
+    assert.ok(Array.isArray(result.technologyRelationships), 'ScanResult.technologyRelationships must be an array');
+    assert.notEqual(result.technologyRelationships, null, 'technologyRelationships must never be null');
   });
 
   test('scan() of a Next.js + React project → built-with relationship present', async () => {
@@ -652,6 +655,8 @@ describe('detectRelationships — detectTechnologyStack() integration', () => {
       r => r.from === 'Next.js' && r.to === 'React' && r.relationship === 'built-with',
     );
     assert.ok(rel, 'scan() must surface Next.js built-with React relationship');
+    assert.deepEqual(result.technologyRelationships, result.technologyStack.relationships,
+      'ScanResult.technologyRelationships must mirror technologyStack.relationships');
   });
 
 });

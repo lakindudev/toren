@@ -600,6 +600,7 @@ export function scan(targetPath: string, options: Partial<CliOptions> = {}): Sca
     projectInfo,
     health,
     technologyStack,
+    technologyRelationships: technologyStack.relationships ?? [],
     tree,
     flatFiles,
     totalFolders,
