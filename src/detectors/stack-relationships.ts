@@ -78,15 +78,35 @@ const RELATIONSHIP_RULES: readonly RelationshipRule[] = [
   { from: 'SvelteKit', to: 'Svelte',  relationship: 'built-with' },
   { from: 'Remix',     to: 'React',   relationship: 'built-with' },
 
+  // ── Runtime environments (runs-on) ────────────────────────────────────────
+  // Technologies that require a specific runtime to operate.
+
+  { from: 'Next.js',     to: 'Node.js', relationship: 'runs-on' },
+  { from: 'NestJS',      to: 'Node.js', relationship: 'runs-on' },
+  { from: 'Express',     to: 'Node.js', relationship: 'runs-on' },
+  { from: 'Fastify',     to: 'Node.js', relationship: 'runs-on' },
+  { from: 'Spring Boot', to: 'Java',    relationship: 'runs-on' },
+  { from: 'Django',      to: 'Python',  relationship: 'runs-on' },
+  { from: 'Flask',       to: 'Python',  relationship: 'runs-on' },
+  { from: 'FastAPI',     to: 'Python',  relationship: 'runs-on' },
+
+  // ── Typing / Language pairings (uses) ─────────────────────────────────────
+  // Frameworks paired with modern TypeScript tooling.
+
+  { from: 'Next.js',   to: 'TypeScript', relationship: 'uses' },
+  { from: 'NestJS',    to: 'TypeScript', relationship: 'uses' },
+  { from: 'Nuxt',      to: 'TypeScript', relationship: 'uses' },
+  { from: 'SvelteKit', to: 'TypeScript', relationship: 'uses' },
+
   // ── ORM → database engine (uses) ──────────────────────────────────────────
   // ORM libraries that are tightly coupled to a single database driver.
   // Mongoose is the canonical MongoDB ODM; Django ORM requires Django's DB
   // layer; Eloquent and Active Record are inseparable from their frameworks.
 
-  { from: 'Mongoose',     to: 'MongoDB', relationship: 'uses'  },
-  { from: 'Django ORM',   to: 'Django',  relationship: 'uses'  },
-  { from: 'Eloquent',     to: 'Laravel', relationship: 'uses'  },
-  { from: 'Active Record', to: 'Rails',  relationship: 'uses'  },
+  { from: 'Mongoose',      to: 'MongoDB', relationship: 'uses' },
+  { from: 'Django ORM',    to: 'Django',  relationship: 'uses' },
+  { from: 'Eloquent',      to: 'Laravel', relationship: 'uses' },
+  { from: 'Active Record', to: 'Rails',   relationship: 'uses' },
 
   // ── Container orchestration (uses) ────────────────────────────────────────
   // Docker Compose manages Docker containers — it cannot run without Docker.

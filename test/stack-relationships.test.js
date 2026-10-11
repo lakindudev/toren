@@ -655,3 +655,107 @@ describe('detectRelationships — detectTechnologyStack() integration', () => {
   });
 
 });
+
+// ---------------------------------------------------------------------------
+// 10. High-confidence runtime & typing relationships
+// ---------------------------------------------------------------------------
+
+describe('detectRelationships — high-confidence runtime & typing relationships', () => {
+
+  test('Next.js + TypeScript produces uses relationship', () => {
+    const result = detectRelationships([
+      tech('Next.js', 'frontend'),
+      tech('TypeScript', 'language'),
+    ]);
+    const rel = result.find(r => r.from === 'Next.js' && r.to === 'TypeScript');
+    assert.ok(rel);
+    assert.equal(rel.relationship, 'uses');
+  });
+
+  test('Next.js + Node.js produces runs-on relationship', () => {
+    const result = detectRelationships([
+      tech('Next.js', 'frontend'),
+      tech('Node.js', 'runtime'),
+    ]);
+    const rel = result.find(r => r.from === 'Next.js' && r.to === 'Node.js');
+    assert.ok(rel);
+    assert.equal(rel.relationship, 'runs-on');
+  });
+
+  test('NestJS + Node.js and NestJS + TypeScript produce relationships', () => {
+    const result = detectRelationships([
+      tech('NestJS', 'backend'),
+      tech('Node.js', 'runtime'),
+      tech('TypeScript', 'language'),
+    ]);
+    const runsOn = result.find(r => r.from === 'NestJS' && r.to === 'Node.js');
+    const uses = result.find(r => r.from === 'NestJS' && r.to === 'TypeScript');
+    assert.ok(runsOn);
+    assert.equal(runsOn.relationship, 'runs-on');
+    assert.ok(uses);
+    assert.equal(uses.relationship, 'uses');
+  });
+
+  test('Express + Node.js and Fastify + Node.js produce runs-on', () => {
+    const result = detectRelationships([
+      tech('Express', 'backend'),
+      tech('Fastify', 'backend'),
+      tech('Node.js', 'runtime'),
+    ]);
+    const exp = result.find(r => r.from === 'Express' && r.to === 'Node.js');
+    const fas = result.find(r => r.from === 'Fastify' && r.to === 'Node.js');
+    assert.ok(exp);
+    assert.equal(exp.relationship, 'runs-on');
+    assert.ok(fas);
+    assert.equal(fas.relationship, 'runs-on');
+  });
+
+  test('Nuxt + TypeScript and SvelteKit + TypeScript produce uses', () => {
+    const result = detectRelationships([
+      tech('Nuxt', 'frontend'),
+      tech('SvelteKit', 'frontend'),
+      tech('TypeScript', 'language'),
+    ]);
+    const nuxtRel = result.find(r => r.from === 'Nuxt' && r.to === 'TypeScript');
+    const svelteRel = result.find(r => r.from === 'SvelteKit' && r.to === 'TypeScript');
+    assert.ok(nuxtRel);
+    assert.equal(nuxtRel.relationship, 'uses');
+    assert.ok(svelteRel);
+    assert.equal(svelteRel.relationship, 'uses');
+  });
+
+  test('Spring Boot + Java produces runs-on', () => {
+    const result = detectRelationships([
+      tech('Spring Boot', 'backend'),
+      tech('Java', 'language'),
+    ]);
+    const rel = result.find(r => r.from === 'Spring Boot' && r.to === 'Java');
+    assert.ok(rel);
+    assert.equal(rel.relationship, 'runs-on');
+  });
+
+  test('Django, Flask, FastAPI + Python produce runs-on', () => {
+    const result = detectRelationships([
+      tech('Django', 'backend'),
+      tech('Flask', 'backend'),
+      tech('FastAPI', 'backend'),
+      tech('Python', 'language'),
+    ]);
+    for (const fw of ['Django', 'Flask', 'FastAPI']) {
+      const rel = result.find(r => r.from === fw && r.to === 'Python');
+      assert.ok(rel, `${fw} + Python must produce relationship`);
+      assert.equal(rel.relationship, 'runs-on');
+    }
+  });
+
+  test('Missing target runtime does not emit relationship', () => {
+    const result = detectRelationships([
+      tech('Express', 'backend'),
+      tech('Django', 'backend'),
+      tech('Spring Boot', 'backend'),
+    ]);
+    assert.equal(result.length, 0);
+  });
+
+});
+
