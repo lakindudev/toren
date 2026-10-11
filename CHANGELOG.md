@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-10-11
+### Added
+- **Technology Stack Relationships**: Deterministic, high-confidence relationship detection (`runs-on`, `built-with`, `uses`, `stores-data-in`) between detected technologies.
+- **No False Inferences**: Strict invariant ensuring relationships only connect technologies present in the detected stack; never infers or fabricates absent technologies.
+- **Deterministic Ordering**: Canonical sorting (`from` technology, then `relationship` type, then `to` technology) and deduplication.
+- **Project Stack Summary**: Deterministic, template-based stack summary (headline + frameworks, styling, data, testing categorization) without AI or LLMs.
+- **Focused Command (`--stack-summary`)**: Focused CLI command to interpret the project stack.
+- **Renderer Integration**: Full integration across JSON (`technologyRelationships`, `stackSummary`), Markdown (`## Technology Relationships`, `## Stack Summary`), HTML cards, and `--stack` output.
+- **Security & XSS Protection**: Strict escaping applied to all relationship and stack summary values across all renderers.
+- **Zero-Dependency Guarantee**: Pure Node.js >= 18 ESM with zero runtime dependencies.
+
 ## [1.1.1] - 2026-09-13
 ### Changed
 - **Accuracy and Confidence Scoring**: Evidence scoring logic has been centralized and optimized.
