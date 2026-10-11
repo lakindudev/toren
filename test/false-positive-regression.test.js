@@ -39,6 +39,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { detectTechnologyStack } from '../dist/detectors/technology-stack-detector.js';
+import { detectRelationships } from '../dist/detectors/stack-relationships.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -687,6 +688,86 @@ describe('False positive: Additional edge cases', () => {
     // fixtures/ is a noise directory — file evidence is filtered
     assert.equal(find(result, 'Docker'), undefined,
       'Dockerfile under fixtures/ must not detect Docker (noise directory)');
+  });
+
+});
+
+// ---------------------------------------------------------------------------
+// Step 11: Relationships never infer absent technologies
+// ---------------------------------------------------------------------------
+
+describe('False-Positive Relationships: Never infer absent technologies', () => {
+
+  test('Next.js alone does NOT infer React or emit relationship if React is absent', () => {
+    const stack = detectTechnologyStack(emptyCtx({
+      packageManifest: { dependencies: { next: '^14.0.0' } },
+      configs: ['next.config.js'],
+      flatFiles: ['next.config.js'],
+    }));
+    assert.ok(find(stack, 'Next.js'));
+    assert.equal(find(stack, 'React'), undefined, 'React must NOT be inferred');
+
+    const rels = detectRelationships(stack.technologies);
+    const reactRel = rels.find(r => r.from === 'Next.js' && r.to === 'React');
+    assert.equal(reactRel, undefined, 'Must NOT emit relationship to absent React');
+  });
+
+  test('Prisma alone does NOT infer PostgreSQL or emit relationship if PostgreSQL is absent', () => {
+    const stack = detectTechnologyStack(emptyCtx({
+      packageManifest: { dependencies: { '@prisma/client': '^5.0.0' } },
+      flatFiles: ['prisma/schema.prisma'],
+    }));
+    assert.ok(find(stack, 'Prisma'));
+    assert.equal(find(stack, 'PostgreSQL'), undefined, 'PostgreSQL must NOT be inferred');
+
+    const rels = detectRelationships(stack.technologies);
+    const pgRel = rels.find(r => r.from === 'Prisma' && r.to === 'PostgreSQL');
+    assert.equal(pgRel, undefined, 'Must NOT emit relationship to absent PostgreSQL');
+  });
+
+  test('Express alone does NOT infer Node.js unless Node.js is detected', () => {
+    const stack = detectTechnologyStack(emptyCtx({
+      packageManifest: { dependencies: { express: '^4.18.0' } },
+      flatFiles: ['server.js'],
+    }));
+    assert.ok(find(stack, 'Express'));
+    assert.equal(find(stack, 'Node.js'), undefined, 'Node.js must NOT be inferred automatically');
+
+    const rels = detectRelationships(stack.technologies);
+    const nodeRel = rels.find(r => r.from === 'Express' && r.to === 'Node.js');
+    assert.equal(nodeRel, undefined, 'Must NOT emit relationship to absent Node.js');
+  });
+
+  test('NestJS alone does NOT infer TypeScript unless TypeScript is detected', () => {
+    const stack = detectTechnologyStack(emptyCtx({
+      packageManifest: { dependencies: { '@nestjs/core': '^10.0.0' } },
+      flatFiles: ['src/main.js'],
+    }));
+    assert.ok(find(stack, 'NestJS'));
+    assert.equal(find(stack, 'TypeScript'), undefined, 'TypeScript must NOT be inferred automatically');
+
+    const rels = detectRelationships(stack.technologies);
+    const tsRel = rels.find(r => r.from === 'NestJS' && r.to === 'TypeScript');
+    assert.equal(tsRel, undefined, 'Must NOT emit relationship to absent TypeScript');
+  });
+
+  test('Relationships only connect technologies present in detected stack', () => {
+    const stack = detectTechnologyStack(emptyCtx({
+      packageManifest: {
+        dependencies: { next: '^14.0.0', react: '^18.0.0' },
+        devDependencies: { typescript: '^5.0.0' },
+      },
+      configs: ['tsconfig.json'],
+      flatFiles: ['tsconfig.json', 'src/app.tsx'],
+    }));
+    const detectedNames = new Set(stack.technologies.map(t => t.name));
+    const rels = detectRelationships(stack.technologies);
+
+    assert.ok(rels.length > 0);
+    for (const rel of rels) {
+      assert.ok(detectedNames.has(rel.from), `Relationship source ${rel.from} must be in detected stack`);
+      assert.ok(detectedNames.has(rel.to), `Relationship target ${rel.to} must be in detected stack`);
+    }
   });
 
 });
