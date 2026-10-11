@@ -1,4 +1,4 @@
-import type { ScanResult, DirNode, TreeNode, FileNode, ScriptInfo, ImportantFile, HealthObservation } from "../types/index.js";
+import type { ScanResult, DirNode, TreeNode, FileNode, ScriptInfo, ImportantFile, HealthObservation, TechnologyRelationship, StackSummary } from "../types/index.js";
 /**
  * @fileoverview Toren — Markdown Renderer
  *
@@ -204,6 +204,48 @@ function sectionSummary(out: string[], result: ScanResult, relRoot: string): voi
 
 /**
  * @param {string[]} out
+ * @param {StackSummary | undefined} summary
+ */
+function sectionStackSummary(out: string[], summary: StackSummary | undefined): void {
+  out.push('');
+  out.push('## Stack Summary');
+  out.push('');
+
+  const hasCategories = summary && (
+    (summary.frameworks && summary.frameworks.length > 0) ||
+    (summary.styling && summary.styling.length > 0) ||
+    (summary.data && summary.data.length > 0) ||
+    (summary.testing && summary.testing.length > 0)
+  );
+
+  if (!summary || (!summary.headline && !hasCategories)) {
+    out.push('No stack summary available.');
+    return;
+  }
+
+  if (summary.headline) {
+    out.push(summary.headline);
+    if (hasCategories) {
+      out.push('');
+    }
+  }
+
+  if (summary.frameworks && summary.frameworks.length > 0) {
+    out.push(`- **Frameworks:** ${summary.frameworks.join(', ')}`);
+  }
+  if (summary.styling && summary.styling.length > 0) {
+    out.push(`- **Styling:** ${summary.styling.join(', ')}`);
+  }
+  if (summary.data && summary.data.length > 0) {
+    out.push(`- **Data:** ${summary.data.join(', ')}`);
+  }
+  if (summary.testing && summary.testing.length > 0) {
+    out.push(`- **Testing:** ${summary.testing.join(', ')}`);
+  }
+}
+
+/**
+ * @param {string[]} out
  * @param {import('../types/index.js').TechnologyStack} stack
  */
 function sectionTechnologyStack(out: string[], stack: import('../types/index.js').TechnologyStack | undefined): void {
@@ -259,6 +301,25 @@ function sectionTechnologyStack(out: string[], stack: import('../types/index.js'
   for (const [cat, names] of grouped) {
     const label = CATEGORY_LABELS[cat] ?? cat;
     out.push(`- **${label}:** ${names.join(', ')}`);
+  }
+}
+
+/**
+ * @param {string[]} out
+ * @param {TechnologyRelationship[] | undefined} relationships
+ */
+function sectionTechnologyRelationships(out: string[], relationships: TechnologyRelationship[] | undefined): void {
+  out.push('');
+  out.push('## Technology Relationships');
+  out.push('');
+
+  if (!relationships || relationships.length === 0) {
+    out.push('No technology relationships detected.');
+    return;
+  }
+
+  for (const rel of relationships) {
+    out.push(`- ${rel.from} → ${rel.to}`);
   }
 }
 
@@ -447,7 +508,9 @@ export function render(result: ScanResult, options: { cwd?: string } = {}): void
   sectionSummary(out, result, relRoot);
   sectionProjectHealth(out, health);
   sectionImportantFiles(out, importantFiles);
+  sectionStackSummary(out, result.stackSummary);
   sectionTechnologyStack(out, result.technologyStack);
+  sectionTechnologyRelationships(out, result.technologyRelationships);
   sectionFrameworks(out, projectType);
   sectionEntryPoints(out, entryPoints);
   sectionConfigurationFiles(out, configs);
