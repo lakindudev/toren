@@ -28,6 +28,8 @@ import { detectImportantFiles }      from '../detectors/important-files-detector
 import { detectProjectInfo }         from '../detectors/project-info-detector.js';
 import { detectHealth }              from '../detectors/health-detector.js';
 import { detectTechnologyStack }     from '../detectors/technology-stack-detector.js';
+import { generateStackSummary }      from '../detectors/stack-summary.js';
+
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -589,6 +591,9 @@ export function scan(targetPath: string, options: Partial<CliOptions> = {}): Sca
     packageManifest,
   });
 
+  // Derive stack summary from already-detected technologyStack (no extra disk I/O)
+  const stackSummary = generateStackSummary(technologyStack);
+
   return {
     rootPath,
     projectType,
@@ -601,6 +606,7 @@ export function scan(targetPath: string, options: Partial<CliOptions> = {}): Sca
     health,
     technologyStack,
     technologyRelationships: technologyStack.relationships ?? [],
+    stackSummary,
     tree,
     flatFiles,
     totalFolders,

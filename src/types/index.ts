@@ -217,6 +217,34 @@ export interface TechnologyStack {
   relationships: TechnologyRelationship[];
 }
 
+// ---------------------------------------------------------------------------
+// Technology Stack Intelligence — v1.1.2: Stack Summary
+// ---------------------------------------------------------------------------
+
+/**
+ * A deterministic, template-based summary of the detected project stack.
+ *
+ * All fields are optional — the summary gracefully degrades when information
+ * is unavailable. No fields are ever null; missing categories produce empty
+ * arrays and undefined string fields are simply omitted.
+ */
+export interface StackSummary {
+  /**
+   * A short, human-readable description of the project type.
+   * Generated from detected language + stack shape.
+   * Undefined when the stack is empty or too ambiguous to summarise.
+   */
+  headline?: string;
+  /** Detected frontend / backend frameworks (sorted by category rank, then name). */
+  frameworks: string[];
+  /** Detected styling technologies. */
+  styling: string[];
+  /** Detected databases and ORM / data-access tools. */
+  data: string[];
+  /** Detected testing frameworks and utilities. */
+  testing: string[];
+}
+
 export interface ScanResult {
   rootPath: string;
   projectType: string;
@@ -234,6 +262,7 @@ export interface ScanResult {
   health: HealthObservation[];
   technologyStack: TechnologyStack;
   technologyRelationships: TechnologyRelationship[];
+  stackSummary: StackSummary;
 }
 
 export type OutputFormat = "console" | "json" | "markdown" | "html";
