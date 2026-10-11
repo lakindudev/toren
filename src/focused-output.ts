@@ -194,6 +194,14 @@ export function renderFocusedMode(mode: string, result: ScanResult): void {
       }
       console.log('');
     }
+
+    if (result.technologyRelationships && result.technologyRelationships.length > 0) {
+      console.log('\x1b[1mRelationships\x1b[0m');
+      for (const rel of result.technologyRelationships) {
+        console.log(`  ${rel.from} → ${rel.to}`);
+      }
+      console.log('');
+    }
     break;
   }
 

@@ -88,6 +88,26 @@ describe('--tech-stack CLI flag', () => {
     assert.match(res.output, /Vitest/);
   });
 
+  test('--stack on project with relationships shows Relationships section', () => {
+    const dir = makeDir({
+      'package.json': JSON.stringify({
+        name: 'next-app',
+        dependencies: { next: '^14.0.0', react: '^18.0.0' },
+        devDependencies: { typescript: '^5.0.0' },
+      }),
+      'next.config.js': 'module.exports = {};',
+      'tsconfig.json': '{}',
+    });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const res = runCLI(`${dir} --stack`);
+    assert.equal(res.status, 0);
+    assert.match(res.output, /Technology Stack/);
+    assert.match(res.output, /Relationships/);
+    assert.match(res.output, /Next\.js → React/);
+    assert.match(res.output, /Next\.js → TypeScript/);
+  });
+
   test('--tech-stack on empty project shows empty message', () => {
     const dir = makeDir({
       'README.md': '# Empty',
