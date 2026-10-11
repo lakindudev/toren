@@ -282,6 +282,8 @@ export interface CliOptions {
   importantFilesOnly?: boolean;
   healthOnly?: boolean;
   scriptsOnly?: boolean;
+  stackOnly?: boolean;
+  stackSummaryOnly?: boolean;
 }
 
 declare global {
