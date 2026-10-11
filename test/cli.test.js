@@ -344,7 +344,8 @@ describe('JSON Output Consistency', () => {
   // Canonical property order that every JSON response must follow.
   const PROPERTY_ORDER = [
     'meta', 'project', 'frameworks', 'entryPoints',
-    'configs', 'scripts', 'importantFiles', 'health', 'statistics', 'structure', 'technologyStack', 'summary',
+    'configs', 'scripts', 'importantFiles', 'health', 'statistics', 'structure',
+    'technologyStack', 'technologyRelationships', 'stackSummary', 'summary',
   ];
 
   function getJSON(args) {
@@ -371,9 +372,19 @@ describe('JSON Output Consistency', () => {
 
   test('normal repo: all array fields are arrays (never null)', () => {
     const data = getJSON('.');
-    for (const key of ['frameworks', 'entryPoints', 'configs', 'scripts', 'structure']) {
+    for (const key of ['frameworks', 'entryPoints', 'configs', 'scripts', 'structure', 'technologyRelationships']) {
       assert.ok(Array.isArray(data[key]), `${key} must be an array, got ${typeof data[key]}`);
       assert.notEqual(data[key], null, `${key} must not be null`);
+    }
+  });
+
+  test('normal repo: stackSummary is present with array fields (never null)', () => {
+    const data = getJSON('.');
+    assert.ok(data.stackSummary, 'stackSummary must be present');
+    assert.equal(typeof data.stackSummary, 'object');
+    for (const key of ['frameworks', 'styling', 'data', 'testing']) {
+      assert.ok(Array.isArray(data.stackSummary[key]), `stackSummary.${key} must be an array`);
+      assert.notEqual(data.stackSummary[key], null, `stackSummary.${key} must not be null`);
     }
   });
 

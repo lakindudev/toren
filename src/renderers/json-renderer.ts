@@ -163,7 +163,20 @@ export function render(result: ScanResult, options: { cwd?: string } = {}): void
     // 9. Technology Stack — structured, deduplicated list of detected technologies
     technologyStack: result.technologyStack || { technologies: [] },
 
-    // 9. Backward-compatible summary block — preserved for existing consumers.
+    // 10. Technology Relationships — deterministic connections between detected technologies
+    technologyRelationships: Array.isArray(result.technologyRelationships)
+      ? result.technologyRelationships
+      : [],
+
+    // 11. Stack Summary — deterministic project-level stack summary
+    stackSummary: result.stackSummary || {
+      frameworks: [],
+      styling:    [],
+      data:       [],
+      testing:    [],
+    },
+
+    // 12. Backward-compatible summary block — preserved for existing consumers.
     //    Contains the same data under the original field names.
     summary: {
       totalFiles,
